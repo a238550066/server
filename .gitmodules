@@ -1,0 +1,9 @@
+[submodule "wz"]
+	path = wz
+	url = https://github.com/TMS-v113/wz.git
+[submodule "script"]
+	path = script
+	url = https://github.com/TMS-v113/script.git
+[submodule "sql"]
+	path = sql
+	url = https://github.com/TMS-v113/sql.git
