@@ -1,6 +1,6 @@
 /*
  This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
+ Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc>
  Matthias Butz <matze@odinms.de>
  Jan Christian Meyer <vimes@odinms.de>
 
@@ -80,7 +80,7 @@ public enum SendPacketOpcode implements WritableIntValueHolder {
     ENERGY_ATTACK,
     OPEN_NPC_SHOP,
     CONFIRM_SHOP_TRANSACTION,
-	FISH_ITEM_STORE,
+    FISH_ITEM_STORE,
     OPEN_STORAGE,
     MODIFY_INVENTORY_ITEM,
     REMOVE_PLAYER_FROM_MAP,
@@ -141,7 +141,7 @@ public enum SendPacketOpcode implements WritableIntValueHolder {
     MOVE_PET,
     PET_CHAT,
     PET_COMMAND,
-	COMPLETE_PET,
+    COMPLETE_PET,
     PET_NAMECHANGE,
     PET_FLAG_CHANGE,
     COOLDOWN,
@@ -176,7 +176,7 @@ public enum SendPacketOpcode implements WritableIntValueHolder {
     SPAWN_HIRED_MERCHANT,
     UPDATE_HIRED_MERCHANT,
     SEND_TITLE_BOX,
-	SEND_FISH_BOX,
+    SEND_FISH_BOX,
     DESTROY_HIRED_MERCHANT,
     UPDATE_MOUNT,
     MONSTERBOOK_ADD,
@@ -275,7 +275,7 @@ public enum SendPacketOpcode implements WritableIntValueHolder {
 
     public static Properties getDefaultProperties() throws FileNotFoundException, IOException {
         Properties props = new Properties();
-        FileInputStream fileInputStream = new FileInputStream("libs/opcode/send.ini");
+        FileInputStream fileInputStream = new FileInputStream("send.ini");
         props.load(fileInputStream);
         fileInputStream.close();
         return props;
@@ -285,7 +285,7 @@ public enum SendPacketOpcode implements WritableIntValueHolder {
         reloadValues();
     }
 
-    public static final void reloadValues() {
+    public static void reloadValues() {
         try {
             ExternalCodeTableGetter.populateValues(getDefaultProperties(), values());
         } catch (IOException e) {

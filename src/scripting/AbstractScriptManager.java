@@ -1,6 +1,6 @@
 /*
  This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
+ Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc>
  Matthias Butz <matze@odinms.de>
  Jan Christian Meyer <vimes@odinms.de>
 
@@ -54,8 +54,8 @@ public abstract class AbstractScriptManager {
     protected Invocable getInvocable(String path, MapleClient c, boolean npc) {
         InputStream in = null;
         try {
-            
-            path = "libs/scripts/" + path;
+
+            path = "script/" + path;
             ScriptEngine engine = null;
 
             if (c != null) {
@@ -67,14 +67,14 @@ public abstract class AbstractScriptManager {
                     return null;
                 }
                 engine = sem.getEngineByName("nashorn");
-                
+
                 if (c != null) {
                     c.setScriptEngine(path, engine);
                 }
-                
+
                 in = new FileInputStream(scriptFile);
                 BufferedReader bf = new BufferedReader(new InputStreamReader(in, EncodingDetect.getJavaEncode(scriptFile)));
-              
+
                 String lines = "load('nashorn:mozilla_compat.js');" + bf.lines().collect(Collectors.joining(System.lineSeparator()));
 
                 engine.eval(lines);

@@ -61,7 +61,7 @@ public class PortalScriptManager {
             return scripts.get(scriptName);
         }
 
-        String scriptPath = "libs/scripts/portal/" + scriptName + ".js";
+        String scriptPath = "script/portal/" + scriptName + ".js";
         final File scriptFile = new File(scriptPath);
         if (!scriptFile.exists()) {
             scripts.put(scriptName, null);

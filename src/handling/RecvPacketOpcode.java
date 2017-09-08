@@ -1,6 +1,6 @@
 /*
  This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
+ Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc>
  Matthias Butz <matze@odinms.de>
  Jan Christian Meyer <vimes@odinms.de>
 
@@ -68,7 +68,7 @@ public enum RecvPacketOpcode implements WritableIntValueHolder {
     NPC_SHOP,
     STORAGE,
     USE_HIRED_MERCHANT,
-	USE_HIRED_FISHING,
+    USE_HIRED_FISHING,
     MERCH_ITEM_STORE,
     DUEY_ACTION,
     ITEM_SORT,
@@ -104,9 +104,9 @@ public enum RecvPacketOpcode implements WritableIntValueHolder {
     QUEST_ACTION,
     SKILL_MACRO,
     REWARD_ITEM,
-	SOLOMON_EXP,
-	SOLOMON,
-	GACH_EXP,
+    SOLOMON_EXP,
+    SOLOMON,
+    GACH_EXP,
     ITEM_MAKER,
     USE_TREASUER_CHEST,
     PARTYCHAT,
@@ -215,7 +215,7 @@ public enum RecvPacketOpcode implements WritableIntValueHolder {
 
     public static Properties getDefaultProperties() throws FileNotFoundException, IOException {
         Properties props = new Properties();
-        FileInputStream fileInputStream = new FileInputStream("libs/opcode/recv.ini");
+        FileInputStream fileInputStream = new FileInputStream("recv.ini");
         props.load(fileInputStream);
         fileInputStream.close();
         return props;
@@ -225,7 +225,7 @@ public enum RecvPacketOpcode implements WritableIntValueHolder {
         reloadValues();
     }
 
-    public static final void reloadValues() {
+    public static void reloadValues() {
         try {
             ExternalCodeTableGetter.populateValues(getDefaultProperties(), values());
         } catch (IOException e) {

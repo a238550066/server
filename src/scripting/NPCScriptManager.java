@@ -255,10 +255,10 @@ public class NPCScriptManager extends AbstractScriptManager {
         if (npccm != null) {
             cms.remove(c);
             if (npccm.getType() == -1) {
-                c.removeScriptEngine("libs/scripts/npc/" + npccm.getNpc() + ".js");
-                c.removeScriptEngine("libs/scripts/npc/notcoded.js");
+                c.removeScriptEngine("script/npc/" + npccm.getNpc() + ".js");
+                c.removeScriptEngine("script/npc/notcoded.js");
             } else {
-                c.removeScriptEngine("libs/scripts/quest/" + npccm.getQuest() + ".js");
+                c.removeScriptEngine("script/quest/" + npccm.getQuest() + ".js");
             }
         }
         if (c.getPlayer() != null && c.getPlayer().getConversation() == 1) {

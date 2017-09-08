@@ -30,18 +30,18 @@ import java.io.FileOutputStream;
 public class FileoutputUtil {
 
     // Logging output file
-    public static final String Acc_Stuck = "logs/account_stuck.rtf",
-        Login_Error = "logs/login_error.rtf",
-        Return_Scroll_Error = "logs/return_scroll_error.rtf",
-        Timer_Log = "logs/timer_except.rtf",
-        MapTimer_Log = "logs/map_timer_except.rtf",
-        IP_Log = "logs/account_ip.rtf",
-        GMCommand_Log = "logs/gm_command.rtf",
-        Zakum_Log = "logs/zakum.rtf",
-        Horntail_Log = "logs/horntail.rtf",
-        Pinkbean_Log = "logs/pinkbean.rtf",
-        ScriptEx_Log = "logs/script_except.rtf",
-        PacketEx_Log = "logs/packet_except.rtf" // I cba looking for every error, adding this back in.
+    public static final String Acc_Stuck = "log/account_stuck.rtf",
+        Login_Error = "log/login_error.rtf",
+        Return_Scroll_Error = "log/return_scroll_error.rtf",
+        Timer_Log = "log/timer_except.rtf",
+        MapTimer_Log = "log/map_timer_except.rtf",
+        IP_Log = "log/account_ip.rtf",
+        GMCommand_Log = "log/gm_command.rtf",
+        Zakum_Log = "log/zakum.rtf",
+        Horntail_Log = "log/horntail.rtf",
+        Pinkbean_Log = "log/pinkbean.rtf",
+        ScriptEx_Log = "log/script_except.rtf",
+        PacketEx_Log = "log/packet_except.rtf" // I cba looking for every error, adding this back in.
             + "";
     // End
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
