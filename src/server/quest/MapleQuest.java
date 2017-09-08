@@ -192,15 +192,23 @@ public class MapleQuest implements Serializable {
         return ret;
     }
 
-    public boolean canStart(MapleCharacter c, Integer npcid) {
-        if (c.getQuest(this).getStatus() != 0 && !(c.getQuest(this).getStatus() == 2 && repeatable)) {
-            return false;
-        }
-        for (MapleQuestRequirement r : startReqs) {
-            if (!r.check(c, npcid)) {
+    public boolean canStart(MapleCharacter c, Integer npcId)
+    {
+        // 任務不是未觸發之狀態
+        if (c.getQuest(this).getStatus() != 0) {
+            // 任務已完成且是不可重複執行之任務
+            if (! (c.getQuest(this).getStatus() == 2 && repeatable)) {
                 return false;
             }
         }
+
+        // 確認所有任務先決條件皆符合
+        for (MapleQuestRequirement r : startReqs) {
+            if (! r.check(c, npcId)) {
+                return false;
+            }
+        }
+
         return true;
     }
 

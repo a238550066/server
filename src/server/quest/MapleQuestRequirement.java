@@ -237,8 +237,9 @@ public class MapleQuestRequirement implements Serializable {
                     }
                 }
                 return true;
+            // 名聲最低需求
             case pop:
-                return c.getFame() <= intStore;
+                return c.getFame() >= intStore;
             case questComplete:
                 return c.getNumQuest() >= intStore;
             case interval:
