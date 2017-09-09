@@ -498,12 +498,12 @@ public class NPCConversationManager extends AbstractPlayerInteraction {
         MapleQuest.getInstance(id).forceComplete(getPlayer(), getNpc());
     }
 
-    public String getQuestCustomData() {
-        return c.getPlayer().getQuestNAdd(MapleQuest.getInstance(questid)).getCustomData();
+    public String getQuestCustomData(final int id) {
+        return c.getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).getCustomData();
     }
 
-    public void setQuestCustomData(String customData) {
-        getPlayer().getQuestNAdd(MapleQuest.getInstance(questid)).setCustomData(customData);
+    public void setQuestCustomData(final int id, String customData) {
+        getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).setCustomData(customData);
     }
 
     public int getMeso() {

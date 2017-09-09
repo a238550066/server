@@ -131,6 +131,11 @@ public class MapleQuestRequirement implements Serializable {
                 }
                 break;
             }
+
+            // 許多未知
+            case infoex:
+                this.stringStore = MapleDataTool.getString(data.getChildren().get(0).getChildByPath("value"), null);
+                break;
         }
     }
 
@@ -237,13 +242,17 @@ public class MapleQuestRequirement implements Serializable {
                     }
                 }
                 return true;
+
             // 名聲最低需求
             case pop:
                 return c.getFame() >= intStore;
+
             case questComplete:
                 return c.getNumQuest() >= intStore;
+
             case interval:
                 return c.getQuest(quest).getStatus() != 2 || c.getQuest(quest).getCompletionTime() <= System.currentTimeMillis() - intStore * 60 * 1000L;
+
             // 是否有列表中的寵物
             case pet:
                 for (MaplePet pet : c.getPets()) {
@@ -253,6 +262,7 @@ public class MapleQuestRequirement implements Serializable {
                 }
 
                 return false;
+
             // 寵物親密度
             case pettamenessmin:
                 for (MaplePet pet : c.getPets()) {
@@ -262,6 +272,13 @@ public class MapleQuestRequirement implements Serializable {
                 }
 
                 return false;
+
+            // 仍是未知
+            case infoex:
+                String custom = c.getQuest(this.quest).getCustomData();
+
+                return null != custom && this.stringStore.equals(custom);
+
             default:
                 return true;
         }
