@@ -244,19 +244,23 @@ public class MapleQuestRequirement implements Serializable {
                 return c.getNumQuest() >= intStore;
             case interval:
                 return c.getQuest(quest).getStatus() != 2 || c.getQuest(quest).getCompletionTime() <= System.currentTimeMillis() - intStore * 60 * 1000L;
+            // 是否有列表中的寵物
             case pet:
-                for (Pair<Integer, Integer> a : dataStore) {
-                    if (c.getPetById(a.getRight()) == -1) {
-                        return false;
+                for (MaplePet pet : c.getPets()) {
+                    if (this.quest.getRelevantPets().contains(pet.getPetItemId())) {
+                        return true;
                     }
                 }
-                return true;
+
+                return false;
+            // 寵物親密度
             case pettamenessmin:
                 for (MaplePet pet : c.getPets()) {
                     if (pet.getSummoned() && pet.getCloseness() >= intStore) {
                         return true;
                     }
                 }
+
                 return false;
             default:
                 return true;

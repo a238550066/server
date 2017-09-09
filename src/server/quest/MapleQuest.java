@@ -3,14 +3,10 @@ package server.quest;
 import constants.GameConstants;
 import java.io.File;
 import java.io.Serializable;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import client.MapleCharacter;
 import client.MapleQuestStatus;
-import java.util.ArrayList;
 import scripting.NPCScriptManager;
 import provider.MapleData;
 import provider.MapleDataProvider;
@@ -31,6 +27,7 @@ public class MapleQuest implements Serializable {
     protected List<MapleQuestAction> completeActs;
     protected Map<String, List<Pair<String, Pair<String, Integer>>>> partyQuestInfo; //[rank, [more/less/equal, [property, value]]]
     protected Map<Integer, Integer> relevantMobs;
+    private Set<Integer> relevantPets;
     private boolean autoStart = false;
     private boolean autoPreComplete = false;
     private boolean repeatable = false, customend = false;
@@ -43,68 +40,93 @@ public class MapleQuest implements Serializable {
     private static MapleData pinfo;
 
     protected MapleQuest(final int id) {
-        relevantMobs = new LinkedHashMap<Integer, Integer>();
-        startReqs = new LinkedList<MapleQuestRequirement>();
-        completeReqs = new LinkedList<MapleQuestRequirement>();
-        startActs = new LinkedList<MapleQuestAction>();
-        completeActs = new LinkedList<MapleQuestAction>();
-        partyQuestInfo = new LinkedHashMap<String, List<Pair<String, Pair<String, Integer>>>>();
+        relevantMobs = new LinkedHashMap<>();
+        relevantPets = new HashSet<>();
+        startReqs = new LinkedList<>();
+        completeReqs = new LinkedList<>();
+        startActs = new LinkedList<>();
+        completeActs = new LinkedList<>();
+        partyQuestInfo = new LinkedHashMap<>();
         this.id = id;
     }
 
     /**
      * Creates a new instance of MapleQuest
      */
-    private static boolean loadQuest(MapleQuest ret, int id) throws NullPointerException {
+    private static boolean loadQuest(MapleQuest ret, int id) throws NullPointerException
+    {
         // read reqs
-        final MapleData basedata1 = requirements.getChildByPath(String.valueOf(id));
+        final MapleData checker = requirements.getChildByPath(String.valueOf(id));
         final MapleData basedata2 = actions.getChildByPath(String.valueOf(id));
 
-        if (basedata1 == null || basedata2 == null) {
+        if (checker == null || basedata2 == null) {
             return false;
         }
-        //-------------------------------------------------
-        final MapleData startReqData = basedata1.getChildByPath("0");
-        if (startReqData != null) {
-            final List<MapleData> startC = startReqData.getChildren();
-            if (startC != null && startC.size() > 0) {
-                for (MapleData startReq : startC) {
-                    final MapleQuestRequirementType type = MapleQuestRequirementType.getByWZName(startReq.getName());
+
+        // 任務開始條件
+        final MapleData startReqData = checker.getChildByPath("0");
+
+        if (null != startReqData) {
+            final List<MapleData> requirements = startReqData.getChildren();
+
+            if (null != requirements && requirements.size() > 0) {
+                for (MapleData requirement : requirements) {
+                    final MapleQuestRequirementType type = MapleQuestRequirementType.getByWZName(requirement.getName());
+
                     if (type.equals(MapleQuestRequirementType.interval)) {
                         ret.repeatable = true;
                     }
-                    final MapleQuestRequirement req = new MapleQuestRequirement(ret, type, startReq);
+
+                    final MapleQuestRequirement req = new MapleQuestRequirement(ret, type, requirement);
+
                     if (req.getType().equals(MapleQuestRequirementType.mob)) {
-                        for (MapleData mob : startReq.getChildren()) {
+                        for (MapleData mob : requirement.getChildren()) {
                             ret.relevantMobs.put(
-                                    MapleDataTool.getInt(mob.getChildByPath("id")),
-                                    MapleDataTool.getInt(mob.getChildByPath("count"), 0));
+                                MapleDataTool.getInt(mob.getChildByPath("id")),
+                                MapleDataTool.getInt(mob.getChildByPath("count"), 0)
+                            );
+                        }
+                    } else if (req.getType().equals(MapleQuestRequirementType.pet)) {
+                        for (MapleData pet : requirement.getChildren()) {
+                            ret.relevantPets.add(MapleDataTool.getInt(pet.getChildByPath("id")));
                         }
                     }
+
                     ret.startReqs.add(req);
                 }
             }
         }
-        //-------------------------------------------------
-        final MapleData completeReqData = basedata1.getChildByPath("1");
-        if (completeReqData != null) {
-            final List<MapleData> completeC = completeReqData.getChildren();
-            if (completeC != null && completeC.size() > 0) {
-                for (MapleData completeReq : completeC) {
-                    MapleQuestRequirement req = new MapleQuestRequirement(ret, MapleQuestRequirementType.getByWZName(completeReq.getName()), completeReq);
+
+        // 任務完成條件
+        final MapleData completeReqData = checker.getChildByPath("1");
+
+        if (null != completeReqData) {
+            final List<MapleData> requirements = completeReqData.getChildren();
+
+            if (null != requirements && requirements.size() > 0) {
+                for (MapleData requirement : requirements) {
+                    MapleQuestRequirement req = new MapleQuestRequirement(ret, MapleQuestRequirementType.getByWZName(requirement.getName()), requirement);
+
                     if (req.getType().equals(MapleQuestRequirementType.mob)) {
-                        for (MapleData mob : completeReq.getChildren()) {
+                        for (MapleData mob : requirement.getChildren()) {
                             ret.relevantMobs.put(
-                                    MapleDataTool.getInt(mob.getChildByPath("id")),
-                                    MapleDataTool.getInt(mob.getChildByPath("count"), 0));
+                                MapleDataTool.getInt(mob.getChildByPath("id")),
+                                MapleDataTool.getInt(mob.getChildByPath("count"), 0)
+                            );
+                        }
+                    } else if (req.getType().equals(MapleQuestRequirementType.pet)) {
+                        for (MapleData pet : requirement.getChildren()) {
+                            ret.relevantPets.add(MapleDataTool.getInt(pet.getChildByPath("id")));
                         }
                     } else if (req.getType().equals(MapleQuestRequirementType.endscript)) {
                         ret.customend = true;
                     }
+
                     ret.completeReqs.add(req);
                 }
             }
         }
+
         // read acts
         final MapleData startActData = basedata2.getChildByPath("0");
         if (startActData != null) {
@@ -212,15 +234,18 @@ public class MapleQuest implements Serializable {
         return true;
     }
 
-    public boolean canComplete(MapleCharacter c, Integer npcid) {
+    public boolean canComplete(MapleCharacter c, Integer npcId)
+    {
         if (c.getQuest(this).getStatus() != 1) {
             return false;
         }
+
         for (MapleQuestRequirement r : completeReqs) {
-            if (!r.check(c, npcid)) {
+            if (! r.check(c, npcId)) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -304,6 +329,11 @@ public class MapleQuest implements Serializable {
 
     public Map<Integer, Integer> getRelevantMobs() {
         return relevantMobs;
+    }
+
+    public Set<Integer> getRelevantPets()
+    {
+        return this.relevantPets;
     }
 
     private boolean checkNPCOnMap(MapleCharacter player, int npcid) {
