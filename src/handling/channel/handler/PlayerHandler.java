@@ -112,45 +112,61 @@ public class PlayerHandler {
         }
     }
 
-    public static final void UseChair(final int itemId, final MapleClient c, final MapleCharacter chr) {
+    public static void UseChair(final int itemId, final MapleClient c, final MapleCharacter chr)
+    {
         if (chr == null) {
             return;
         }
+
         final IItem toUse = chr.getInventory(MapleInventoryType.SETUP).findById(itemId);
 
         if (toUse == null) {
             chr.getCheatTracker().registerOffense(CheatingOffense.USING_UNAVAILABLE_ITEM, Integer.toString(itemId));
+
             return;
         }
-		final int map = chr.getMapId();
+
+        final int map = chr.getMapId();
+
         if (map == 749050500 || map == 749050501 || map == 749050502) {
             boolean haz = false;
+
             for (IItem item : c.getPlayer().getInventory(MapleInventoryType.CASH).list()) {
                 if (item.getItemId() == 5340000) {
                     haz = true;
                 } else if (item.getItemId() == 5340001) {
                     haz = false;
+
                     chr.startFishingTask(true , false);
+
                     break;
                 }
             }
+
             if (haz) {
                 chr.startFishingTask(false , false);
             }
         }
+
         chr.setChair(itemId);
+
         chr.getMap().broadcastMessage(chr, MaplePacketCreator.showChair(chr.getId(), itemId), false);
+
         c.getSession().write(MaplePacketCreator.enableActions());
     }
 
     public static final void CancelChair(final short id, final MapleClient c, final MapleCharacter chr) {
         if (id == -1) { // Cancel Chair
-			final int map = chr.getMapId();
-            if (/*itemId == 3011000*/map == 749050500 || map == 749050501 || map == 749050502) {
+            final int map = chr.getMapId();
+
+            if (map == 749050500 || map == 749050501 || map == 749050502) {
                 chr.cancelFishingTask();
             }
+
             chr.setChair(0);
+
             c.getSession().write(MaplePacketCreator.cancelChair(-1));
+
             chr.getMap().broadcastMessage(chr, MaplePacketCreator.showChair(chr.getId(), 0), false);
         } else { // Use In-Map Chair
             chr.setChair(id);

@@ -1543,61 +1543,82 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
     public void startFishingTask(final boolean VIP , final boolean Elf) {
         final int time = GameConstants.getFishingTime(VIP, isGM());
+
         cancelFishingTask();
 
         fishing = EtcTimer.getInstance().register(new Runnable() { //no real reason for clone.
-
             @Override
-            public void run() {
+            public void run()
+            {
                 final boolean expMulti = haveItem(Elf ? 2300003 : 2300001, 1, false, true);
-                if (!expMulti && !haveItem(Elf ? 2300002 : 2300000, 1, false, true)) {
+
+                if (! expMulti && ! haveItem(Elf ? 2300002 : 2300000, 1, false, true)) {
                     cancelFishingTask();
-                    if(Elf){
-                       if( FishElf == null){
-							return;
+
+                    if (Elf) {
+                        if (null == FishElf) {
+                            return;
                         }
-						FishElf.closeShop(true, true);
-						setPlayerFishing(null);
-						dropMessage(1, "哎呀，精靈小釣手沒有魚餌啦");
-					}
+                        FishElf.closeShop(true, true);
+
+                        setPlayerFishing(null);
+
+                        dropMessage(1, "哎呀，精靈小釣手沒有魚餌啦");
+                    }
+
                     return;
                 }
+
                 MapleInventoryManipulator.removeById(client, MapleInventoryType.USE, expMulti ? (Elf ? 2300003 : 2300001 ) : (Elf ? 2300002 : 2300000 ) , 1, false, false);
 
-                final int randval = RandomRewards.getInstance().getFishingReward();
-
-                switch (randval) {
-                    case 0: // Meso
+                final int randVal = RandomRewards.getInstance().getFishingReward();
+                switch (randVal) {
+                    // 楓幣
+                    case 0:
                         final int money = Randomizer.rand(expMulti ? 15 : 10, expMulti ? 7500 : 5000);
+
                         gainMeso(money, true);
-                        //client.getSession().write(UIPacket.fishingUpdate((byte) 1, money));
+//                        client.getSession().write(UIPacket.fishingUpdate((byte) 1, money));
                         break;
-                    case 1: // EXP
-                        final int experi = Randomizer.nextInt(Math.abs(GameConstants.getExpNeededForLevel(level) / 100) + 1);
-                        gainExp(expMulti ? (experi * 3 / 2) : experi, true, false, true);
-                        //client.getSession().write(UIPacket.fishingUpdate((byte) 2, experi));
+
+                    // 經驗值
+                    case 1:
+                        final int exp = Randomizer.nextInt(Math.abs(GameConstants.getExpNeededForLevel(level) / 100) + 1);
+
+                        gainExp(expMulti ? (exp * 3 / 2) : exp, true, false, true);
+
+                        //client.getSession().write(UIPacket.fishingUpdate((byte) 2, exp));
+
                         break;
+
                     default:
-                        if( !Elf ){
-                            MapleInventoryManipulator.addById(client, randval, (short) 1);
-                            //client.getSession().write(UIPacket.fishingUpdate((byte) 0, randval));
-                        }else{
-                            if( FishElf == null ){
+                        System.out.println("debug 19");
+                        if (! Elf) {
+                            MapleInventoryManipulator.addById(client, randVal, (short) 1);
+                            //client.getSession().write(UIPacket.fishingUpdate((byte) 0, randVal));
+                        } else {
+                            if (null == FishElf) {
                                 cancelFishingTask();
+
                                 return;
                             }
+
                             MapleItemInformationProvider ii = MapleItemInformationProvider.getInstance();
+
                             final IItem item;
-                            if (GameConstants.getInventoryType(randval) == MapleInventoryType.EQUIP) {
-                                item = ii.randomizeStats((Equip) ii.getEquipById(randval));
+
+                            if (GameConstants.getInventoryType(randVal) == MapleInventoryType.EQUIP) {
+                                item = ii.randomizeStats((Equip) ii.getEquipById(randVal));
                             } else {
-                                item = new client.inventory.Item(randval, (byte) 0, (short) 1, (byte) 0);
+                                item = new client.inventory.Item(randVal, (byte) 0, (short) 1, (byte) 0);
                             }
+
                             FishElf.addItem(new MaplePlayerShopItem(item, (short)1, 0));
                         }
                         break;
                 }
-                if( !Elf ){
+
+                if (! Elf) {
                     map.broadcastMessage(UIPacket.fishingCaught(id));
                 }
             }
@@ -3675,14 +3696,17 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
     public final MaplePet getPet(final int index) {
         byte count = 0;
+
         for (final MaplePet pet : pets) {
             if (pet.getSummoned()) {
                 if (count == index) {
                     return pet;
                 }
+
                 count++;
             }
         }
+
         return null;
     }
 
@@ -3726,14 +3750,17 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
     public final byte getPetIndex(final MaplePet petz) {
         byte count = 0;
+
         for (final MaplePet pet : pets) {
             if (pet.getSummoned()) {
                 if (pet == petz) {
                     return count;
                 }
+
                 count++;
             }
         }
+
         return -1;
     }
 
@@ -4912,80 +4939,93 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         spawnPet(slot, lead, true);
     }
 
-    public void spawnPet(byte slot, boolean lead, boolean broadcast) {
+    public void spawnPet(byte slot, boolean lead, boolean broadcast)
+    {
         final IItem item = getInventory(MapleInventoryType.CASH).getItem(slot);
+
         if (item == null || item.getItemId() > 5000100 || item.getItemId() < 5000000) {
             return;
         }
+
         switch (item.getItemId()) {
             case 5000047:
             case 5000028: {
                 final MaplePet pet = MaplePet.createPet(item.getItemId() + 1, MapleInventoryIdentifier.getInstance());
+
                 if (pet != null) {
                     MapleInventoryManipulator.addById(client, item.getItemId() + 1, (short) 1, item.getOwner(), pet, 45);
                     MapleInventoryManipulator.removeFromSlot(client, MapleInventoryType.CASH, slot, (short) 1, false);
                 }
+
                 break;
             }
+
             default: {
                 final MaplePet pet = item.getPet();
+
                 if (pet != null && (item.getItemId() != 5000054 || pet.getSecondsLeft() > 0) && (item.getExpiration() == -1 || item.getExpiration() > System.currentTimeMillis())) {
                     if (pet.getSummoned()) { // Already summoned, let's keep it
                         unequipPet(pet, true, false);
                     } else {
-                        int leadid = 8;
-						
+                        int leadSkillId = 8;
+
                         if (GameConstants.isKOC(getJob())) {
-                            leadid = 10000018;
+                            leadSkillId = 10000018;
                         } else if (GameConstants.isAran(getJob())) {
-                            leadid = 20000024;
+                            leadSkillId = 20000024;
                         } else if (GameConstants.isEvan(getJob())) {
-                            leadid = 20010024;
+                            leadSkillId = 20010024;
                         } else if (GameConstants.isResist(getJob())) {
-                            leadid = 30000024;
+                            leadSkillId = 30000024;
                         }
-                        if (getSkillLevel(SkillFactory.getSkill(leadid)) == 0 && getPet(0) != null) {
+
+                        // 如果沒有「寵物達人」的技能，則將已召喚的寵物收回
+                        if (getSkillLevel(SkillFactory.getSkill(leadSkillId)) == 0 && getPet(0) != null) {
                             unequipPet(getPet(0), false, false);
-                        } else if (lead && getSkillLevel(SkillFactory.getSkill(leadid)) > 0) { // Follow the Lead
+                        } else if (lead && getSkillLevel(SkillFactory.getSkill(leadSkillId)) > 0) { // Follow the Lead
                             //			    shiftPetsRight();
                         }
+
                         final Point pos = getPosition();
+
                         pet.setPos(pos);
+
                         try {
                             pet.setFh(getMap().getFootholds().findBelow(pos).getId());
                         } catch (NullPointerException e) {
                             pet.setFh(0); //lol, it can be fixed by movement
                         }
+
                         pet.setStance(0);
                         pet.setSummoned(1);
 
                         addPet(pet);
 
-						if (lead && getSkillLevel(SkillFactory.getSkill(leadid)) > 0) { // Follow the Lead
-               			    //shiftPetsRight();
-							int count = 0 ;
-							for (final MaplePet p : pets) {
-								if (p.getSummoned()) {
-									break;
-								}
-								count++;
-							}
-							int pet_count = 0;
-							for (final MaplePet p : pets) {
-								if (p == pet) {
-									break;
-								}
-								pet_count++;
-							}
-							System.out.println("Count = " + count + " Pet_count = " + pet_count);
-							Collections.swap(pets, count, pet_count);
+                        if (lead && getSkillLevel(SkillFactory.getSkill(leadSkillId)) > 0) { // Follow the Lead
+                            //shiftPetsRight();
+                            int count = 0 ;
+                            for (final MaplePet p : pets) {
+                                if (p.getSummoned()) {
+                                    break;
+                                }
+                                count++;
+                            }
+                            int pet_count = 0;
+                            for (final MaplePet p : pets) {
+                                if (p == pet) {
+                                    break;
+                                }
+                                pet_count++;
+                            }
+                            System.out.println("Count = " + count + " Pet_count = " + pet_count);
+                            Collections.swap(pets, count, pet_count);
                         }
-						
+
                         if (broadcast) {
                             getMap().broadcastMessage(this, PetPacket.showPet(this, pet, false, false), true);
-							client.getSession().write(PetPacket.PetComplete(this, pet));
-                            //final List<Pair<MapleStat, Integer>> stats = new ArrayList<Pair<MapleStat, Integer>>(1);
-                            //stats.add(new Pair<MapleStat, Integer>(MapleStat.PET, Integer.valueOf(pet.getUniqueId())));
+                            client.getSession().write(PetPacket.PetComplete(this, pet));
+//                            final List<Pair<MapleStat, Integer>> stats = new ArrayList<Pair<MapleStat, Integer>>(1);
+//                            stats.add(new Pair<>(MapleStat.PET, pet.getUniqueId()));
                             client.getSession().write(PetPacket.petStatUpdate(this));
                         }
                     }
