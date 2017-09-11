@@ -117,6 +117,8 @@ public class DatabaseConnection {
 
                 props.put("user", ServerProperties.getProperty("tms.User"));
                 props.put("password", ServerProperties.getProperty("tms.Pass"));
+                props.put("useUnicode", "yes");
+                props.put("characterEncoding", "BIG5");
 
                 final Connection con = DriverManager.getConnection(ServerProperties.getProperty("tms.Url"), props);
 
