@@ -84,7 +84,8 @@ public class CharLoginHandler {
             }
         }
 
-        loginok = c.login(login, pwd, ipBan || macBan);
+        loginok = c.login(login, pwd);
+
         final Calendar tempbannedTill = c.getTempBanCalendar();
 
         if (loginok == 0 && (ipBan || macBan) && !c.isGm()) {
@@ -305,7 +306,7 @@ public class CharLoginHandler {
                 c.getSession().close();
                 return;
             } else {
-                if (!c.CheckSecondPassword(Secondpw_Client)) { // Wrong Password
+                if (!c.checkSecondPassword(Secondpw_Client)) { // Wrong Password
                     //state = 12;
                     state = 16;
                 }
@@ -341,7 +342,7 @@ public class CharLoginHandler {
             c.getSession().close();
             return;
         }
-        if (c.CheckSecondPassword(password)) {
+        if (c.checkSecondPassword(password)) {
             c.updateMacs(slea.readMapleAsciiString());
             if (c.getIdleTask() != null) {
                 c.getIdleTask().cancel(true);

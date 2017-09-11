@@ -6,9 +6,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import tools.HexTool;
 
-public class LoginCrypto {
-
-    protected final static int extralength = 6;
+public class LoginCrypto
+{
+    private final static int extraLength = 6;
     private final static String[] Alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
     private final static String[] Number = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
     private final static Random rand = new Random();
@@ -51,37 +51,37 @@ public class LoginCrypto {
         return hashWithDigest(in, "SHA-512");
     }
 
-    public static boolean checkSha1Hash(final String hash, final String password) {
+    static boolean checkSha1Hash(final String hash, final String password) {
         return hash.equals(makeSaltedSha1Hash(password));
     }
 
-    public static boolean checkSaltedSha512Hash(final String hash, final String password, final String salt) {
+    static boolean checkSaltedSha512Hash(final String hash, final String password, final String salt) {
         return hash.equals(makeSaltedSha512Hash(password, salt));
     }
 
-    public static String makeSaltedSha512Hash(final String password, final String salt) {
+    static String makeSaltedSha512Hash(final String password, final String salt) {
         return hexSha512(password + salt);
     }
 
-    public static String makeSaltedSha1Hash(final String password) {
+    private static String makeSaltedSha1Hash(final String password) {
         return hexSha1(password);
     }
 
-    public static String makeSalt() {
+    static String makeSalt() {
         byte[] salt = new byte[16];
         rand.nextBytes(salt);
         return toSimpleHexString(salt);
     }
 
-    public static String rand_s(final String in) {
+    static String rand_s(final String in) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < extralength; i++) {
+        for (int i = 0; i < extraLength; i++) {
             sb.append(rand.nextBoolean() ? Alphabet[rand.nextInt(Alphabet.length)] : Number[rand.nextInt(Number.length)]);
         }
         return sb.toString() + in;
     }
 
-    public static String rand_r(final String in) {
-        return in.substring(extralength, extralength + 128);
+    static String rand_r(final String in) {
+        return in.substring(extraLength, extraLength + 128);
     }
 }

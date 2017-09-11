@@ -102,7 +102,7 @@ public class DatabaseConnection {
 
     private static final class ThreadLocalConnection extends ThreadLocal<Connection> {
 
-        static final Collection<Connection> allConnections = new LinkedList<Connection>();
+        static final Collection<Connection> allConnections = new LinkedList<>();
 
         @Override
         protected final Connection initialValue() {
@@ -117,9 +117,6 @@ public class DatabaseConnection {
 
                 props.put("user", ServerProperties.getProperty("tms.User"));
                 props.put("password", ServerProperties.getProperty("tms.Pass"));
-                props.put("autoReconnect", "true");
-                props.put("maxReconnects", "10");
-                props.put("characterEncoding", "BIG5");
 
                 final Connection con = DriverManager.getConnection(ServerProperties.getProperty("tms.Url"), props);
 

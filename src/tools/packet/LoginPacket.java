@@ -70,7 +70,9 @@ public class LoginPacket {
     public static final MaplePacket getLoginFailed(final int reason) {
         final MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter(16);
 
-        /*	* 3: ID deleted or blocked
+        /*
+         * 0: Login success
+         * 3: ID deleted or blocked
          * 4: Incorrect password
          * 5: Not a registered id
          * 6: System error
@@ -89,7 +91,8 @@ public class LoginPacket {
          * 25: Maple Europe notice
          * 27: Some weird full client notice, probably for trial versions
          * 32: IP blocked
-         * 84: please revisit website for pass change --> 0x07 recv with response 00/01*/
+         * 84: please revisit website for pass change --> 0x07 recv with response 00/01
+         */
         mplew.writeShort(SendPacketOpcode.LOGIN_STATUS.getValue());
         mplew.write(reason);
         mplew.writeShort(0);
