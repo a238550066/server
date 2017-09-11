@@ -1592,7 +1592,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                         break;
 
                     default:
-                        System.out.println("debug 19");
                         if (! Elf) {
                             MapleInventoryManipulator.addById(client, randVal, (short) 1);
                             //client.getSession().write(UIPacket.fishingUpdate((byte) 0, randVal));
