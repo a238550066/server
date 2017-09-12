@@ -409,8 +409,61 @@ public class MTSCSPacket {
         return mplew.getPacket();
     }
 
-    public static MaplePacket sendCSFail(int err) {
+    public static MaplePacket sendCSFail(int err)
+    {
         MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
+
+        // err 對應表
+        //
+        // 0xA6 已超過工作時間。休息一下再繼續。
+        // 0xA8 GASH 餘額不足。
+        // 0xA9 未滿 14 歲的玩家不能贈送加值道具。
+        // 0xAA 已超過可送禮物的限額。
+        // 0xAB 無法送禮到相同的帳號！請利用該角色登入後購買。
+        // 0xAC 請確認是否為錯誤的角色名稱！
+        // 0xAD 此為有性別限制的道具！請確認收禮人的性別。
+        // 0xAE 收禮人的保管箱已滿！無法送出禮物
+        // 0xAF 請確認是否超過可以保有的加值道具數量。
+        // 0xB0 請確認對方的伺服器、角色名稱是否正確；贈送的物品是否有性別限制，並請確認對方所擁有的加值道具是否已達上限。
+        // 0xB3 此序號發生異常，請洽客服人員。
+        // 0xB4 此序號已過有效期限！
+        // 0xB5 此序號已被使用過！
+        // 0xB6 只有在 Premium 網咖上可以使用的會員卡。請在 Premium 網咖上使用。
+        // 0xB7 Premium 網咖專用會員卡 已經使用過的會員卡。
+        // 0xB8 Premium 網咖 已經過期的會員卡。
+        // 0xB9 這是 NexonCashCoupon 號碼！請上 Nexon.com(www.nexon.com) 的 MyPage > NexonCash > Menu 中登錄 Coupon 號碼。
+        // 0xBA 你的性別無法使用這項道具。
+        // 0xBB 此優待券為專用道具。因此無法贈送。
+        // 0xBC 此優待券為楓葉點數專用！無法送禮給其他人。
+        // 0xBD 請確認是否你的道具欄的空間不夠。
+        // 0xBE 這種物品只在優秀會員網咖買得到。
+        // 0xBF 戀人道具只能贈送給相同頻道的不同性別的角色。請確認你要送出禮物的角色在同一頻道且性別不同。
+        // 0xC0 請你正確輸入要送禮物的角色名稱。
+        // 0xC1 現在不是銷售時間。
+        // 0xC2 這種商品已經賣完了。
+        // 0xC3 亂碼
+        // 0xC4 楓幣不足。
+        // 0xC5 請確認第二組密碼 再重試。
+        // 0xC6 亂碼
+        // 0xC7 已經報名
+        // 0xCD 該道具已超過一日購買上限，無法繼續購買。
+        // 0xD0 已超過 Gash 帳號使用上限！詳細內容請參考序號
+        // 0xD2 未滿 7 歲的玩家無法購買此道具。
+        // 0xD3 未滿 7 歲的玩家無法領取禮物。
+        // 0xD4 此序號不存在。
+        // 0xD5 目前系統繁忙，請於一小時後再試。
+        // 0xD6 請至楓之谷官網認證您的遊戲帳號，才能使用購物商場。
+        // 0xD7 必須要有折價券才能可以買該道具。
+        // 0xD8 限 20 級以上才能申請伺服器移民。
+        // 0xD9 無法移民到相同的伺服器！
+        // 0xDA 無法移民到最新開放的伺服器！
+        // 0xDB 若所要移民的伺服器中，已無多餘的角色欄位，是無法進行伺服器移民！
+        // 0xDC 無法將角色移民到您所指定的伺服器！
+        // 0xDD 暱稱或帳號讀取失敗！
+        // 0xE0 這道具是無法使用楓點購買。
+        // 0xE1 不好意思。請再試一次。
+        //
+        // 預設：發生不明錯誤！購物商場使用失敗！
 
         mplew.writeShort(SendPacketOpcode.CS_OPERATION.getValue());
         mplew.write(0x4D);
