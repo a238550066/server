@@ -1,22 +1,25 @@
 /*
- This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
- Matthias Butz <matze@odinms.de>
- Jan Christian Meyer <vimes@odinms.de>
-
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU Affero General Public License version 3
- as published by the Free Software Foundation. You may not use, modify
- or distribute this program under any other version of the
- GNU Affero General Public License.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Affero General Public License for more details.
-
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * TMS 113 database/DatabaseConnection.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package database;
 
@@ -35,8 +38,8 @@ import server.ServerProperties;
  *
  * @author Frz
  */
-public class DatabaseConnection {
-
+public class DatabaseConnection
+{
     private static ThreadLocal<Connection> con = new ThreadLocalConnection();
 
     public static final int CLOSE_CURRENT_RESULT = 1;
@@ -92,17 +95,23 @@ public class DatabaseConnection {
 
     public static Connection getConnection()
     {
-        Connection _con = con.get();
+        final Connection _con = con.get();
 
         try {
+            // check the connection is valid or not
             if (_con.isValid(1)) {
                 return _con;
             }
 
+            // close the connection
             _con.close();
+
+            // remove the connection from collection
+            ThreadLocalConnection.allConnections.remove(_con);
         } catch (SQLException ignored) {
         }
 
+        // create and return a new connection
         con = new ThreadLocalConnection();
 
         return con.get();
