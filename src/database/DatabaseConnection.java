@@ -37,7 +37,7 @@ import server.ServerProperties;
  */
 public class DatabaseConnection {
 
-    private static final ThreadLocal<Connection> con = new ThreadLocalConnection();
+    private static ThreadLocal<Connection> con = new ThreadLocalConnection();
 
     public static final int CLOSE_CURRENT_RESULT = 1;
 
@@ -90,22 +90,38 @@ public class DatabaseConnection {
      */
     public static final int NO_GENERATED_KEYS = 2;
 
-    public static Connection getConnection() {
+    public static Connection getConnection()
+    {
+        Connection _con = con.get();
+
+        try {
+            if (_con.isValid(1)) {
+                return _con;
+            }
+
+            _con.close();
+        } catch (SQLException ignored) {
+        }
+
+        con = new ThreadLocalConnection();
+
         return con.get();
     }
 
-    public static void closeAll() throws SQLException {
+    public static void closeAll() throws SQLException
+    {
         for (final Connection con : ThreadLocalConnection.allConnections) {
             con.close();
         }
     }
 
-    private static final class ThreadLocalConnection extends ThreadLocal<Connection> {
-
+    private static final class ThreadLocalConnection extends ThreadLocal<Connection>
+    {
         static final Collection<Connection> allConnections = new LinkedList<>();
 
         @Override
-        protected final Connection initialValue() {
+        protected final Connection initialValue()
+        {
             try {
                 Class.forName("com.mysql.jdbc.Driver"); // touch the mysql driver
             } catch (final ClassNotFoundException e) {
