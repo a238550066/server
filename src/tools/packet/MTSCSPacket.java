@@ -1,22 +1,25 @@
 /*
- This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
- Matthias Butz <matze@odinms.de>
- Jan Christian Meyer <vimes@odinms.de>
-
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU Affero General Public License version 3
- as published by the Free Software Foundation. You may not use, modify
- or distribute this program under any other version of the
- GNU Affero General Public License.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Affero General Public License for more details.
-
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * TMS 113 tools.packet/MTSCSPacket.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package tools.packet;
 
@@ -30,7 +33,6 @@ import client.inventory.IItem;
 import server.CashShop;
 import server.CashItemFactory;
 import server.CashItemInfo;
-import server.CashItemInfo.CashModInfo;
 import handling.MaplePacket;
 import handling.SendPacketOpcode;
 import constants.ServerConstants;
@@ -56,16 +58,16 @@ public class MTSCSPacket {
         PacketHelper.addCharacterInfo(mplew, c.getPlayer());
         mplew.writeMapleAsciiString(c.getAccountName());
 
-        Collection<CashModInfo> cmi = CashItemFactory.getInstance().getAllModInfo();
+        Collection<CashItemInfo> cmi = CashItemFactory.getInstance().getAllItems();
         mplew.writeInt(0);
         mplew.writeShort(cmi.size());
-        for (CashModInfo cm : cmi) {
+        for (CashItemInfo cm : cmi) {
 			addModCashItemInfo(mplew, cm);
         }
 		mplew.write(warpCS);
 		mplew.write(warpCS2);
 
-        int[] itemz = CashItemFactory.getInstance().getBestItems();
+        int[] itemz = CashItemFactory.getInstance().getTopItems();
         for (int i = 1; i <= 8; i++) {
 			for (int j = 0; j <= 1; j++) {
 				for (int item : itemz) {
@@ -331,66 +333,87 @@ public class MTSCSPacket {
         //}
     }
 
-    public static void addModCashItemInfo(MaplePacketLittleEndianWriter mplew, CashModInfo item) {
+    private static void addModCashItemInfo(MaplePacketLittleEndianWriter mplew, CashItemInfo item)
+    {
         int flags = item.flags;
+
         mplew.writeInt(item.sn);
         mplew.writeInt(flags);
+
         if ((flags & 0x1) != 0) {
-            mplew.writeInt(item.itemid);
+            mplew.writeInt(item.itemId);
         }
+
         if ((flags & 0x2) != 0) {
             mplew.writeShort(item.count);
         }
-        if ((flags & 0x4) != 0) {
-            mplew.writeInt(item.discountPrice);
-        }
-        if ((flags & 0x8) != 0) {
-            mplew.write(item.unk_1 - 1);
-        }
+
         if ((flags & 0x10) != 0) {
             mplew.write(item.priority);
         }
+
+        if ((flags & 0x4) != 0) {
+            mplew.writeInt(item.price);
+        }
+
+        if ((flags & 0x8) != 0) {
+            mplew.write(item.unk_1 - 1);
+        }
+
         if ((flags & 0x20) != 0) {
             mplew.writeShort(item.period);
         }
+
         if ((flags & 0x40) != 0) {
             mplew.writeInt(0);
         }
+
         if ((flags & 0x80) != 0) {
             mplew.writeInt(item.meso);
         }
+
         if ((flags & 0x100) != 0) {
             mplew.write(item.unk_2 - 1);
         }
+
         if ((flags & 0x200) != 0) {
             mplew.write(item.gender);
+
         }
         if ((flags & 0x400) != 0) {
             mplew.write(item.showUp ? 1 : 0);
         }
+
         if ((flags & 0x800) != 0) {
             mplew.write(item.mark);
         }
+
         if ((flags & 0x1000) != 0) {
             mplew.write(item.unk_3 - 1);
         }
+
         if ((flags & 0x2000) != 0) {
             mplew.writeShort(0);
         }
+
         if ((flags & 0x4000) != 0) {
             mplew.writeShort(0);
         }
+
         if ((flags & 0x8000) != 0) {
             mplew.writeShort(0);
         }
+
         if ((flags & 0x10000) != 0) {
             List<CashItemInfo> pack = CashItemFactory.getInstance().getPackageItems(item.sn);
+
             if (pack == null) {
                 mplew.write(0);
             } else {
                 mplew.write(pack.size());
-                for (int i = 0; i < pack.size(); i++) {
-                    mplew.writeInt(pack.get(i).getSN());
+
+                for (CashItemInfo packItem : pack) {
+                    mplew.writeInt(packItem.getSN());
                 }
             }
         }

@@ -1,133 +1,159 @@
+/*
+ * TMS 113 server/CashItemFactory.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package server;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
-import database.DatabaseConnection;
-import handling.cashshop.CashShopServer;
 import java.io.File;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Collection;
+
+import database.DatabaseConnection;
 import provider.MapleData;
-import provider.MapleDataProvider;
 import provider.MapleDataProviderFactory;
 import provider.MapleDataTool;
-import server.CashItemInfo.CashModInfo;
 
 public class CashItemFactory {
 
     private final static CashItemFactory instance = new CashItemFactory();
-    private final static int[] bestItems = new int[]{50400003, 50300092, 30200034, 50100010, 50300099};
+    private final static int[] topItems = new int[]{50401007, 40001014, 40001029, 40101002, 40101006};
     private boolean initialized = false;
-    private final Map<Integer, CashItemInfo> itemStats = new HashMap<Integer, CashItemInfo>();
-    private final Map<Integer, List<CashItemInfo>> itemPackage = new HashMap<Integer, List<CashItemInfo>>();
-    private final Map<Integer, CashModInfo> itemMods = new HashMap<Integer, CashModInfo>();
-    private final MapleDataProvider data = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Etc.wz"));
+    private final Map<Integer, CashItemInfo> items = new HashMap<>();
+    private final Map<Integer, List<CashItemInfo>> packages = new HashMap<>();
 
-    public static final CashItemFactory getInstance() {
+    public static CashItemFactory getInstance()
+    {
         return instance;
     }
 
-    protected CashItemFactory() {
-    }
+    public void initialize()
+    {
+        System.out.println("載入購物商城物品...");
 
-    public void initialize() {
-        System.out.println("Loading CashItemFactory :::");
-        final List<Integer> itemids = new ArrayList<Integer>();
-        for (MapleData field : data.getData("Commodity.img").getChildren()) {
-            final int itemId = MapleDataTool.getIntConvert("ItemId", field, 0);
-            final int SN = MapleDataTool.getIntConvert("SN", field, 0);
+        try {
+            final Connection con = DatabaseConnection.getConnection();
+            final PreparedStatement ps = con.prepareStatement("SELECT * FROM `cashshop_items`");
+            final ResultSet rs = ps.executeQuery();
 
-            final CashItemInfo stats = new CashItemInfo(itemId,
-                    MapleDataTool.getIntConvert("Count", field, 1),
-                    MapleDataTool.getIntConvert("Price", field, 0), SN,
-                    MapleDataTool.getIntConvert("Period", field, 0),
-                    MapleDataTool.getIntConvert("Gender", field, 2),
-                    MapleDataTool.getIntConvert("OnSale", field, 0) > 0);
+            while (rs.next()) {
+                final int sn = rs.getInt("sn");
+                final int itemId = rs.getInt("item_id");
 
-            if (SN > 0) {
-                itemStats.put(SN, stats);
+                final CashItemInfo stats = new CashItemInfo(
+                    sn,
+                    itemId,
+                    rs.getInt("count"),
+                    rs.getInt("price"),
+                    rs.getInt("period"),
+                    rs.getInt("priority"),
+                    rs.getInt("gender"),
+                    rs.getInt("mark"),
+                    rs.getInt("show_up"),
+                    rs.getInt("package"),
+                    rs.getInt("meso"),
+                    rs.getInt("unk_1"),
+                    rs.getInt("unk_2"),
+                    rs.getInt("unk_3")
+                );
+
+                this.items.put(sn, stats);
             }
 
-            if (itemId > 0) {
-                itemids.add(itemId);
+            for (CashItemInfo item : this.items.values()) {
+                this.getPackageItems(item.getId());
             }
+
+            rs.close();
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        for (int i : itemids) {
-            getPackageItems(i);
-        }
-        for (int i : itemStats.keySet()) {
-            getModInfo(i);
-            getItem(i); //init the modinfo's citem
-        }
-        initialized = true;
+
+        this.initialized = true;
     }
 
-    public final CashItemInfo getItem(int sn) {
-        final CashItemInfo stats = itemStats.get(Integer.valueOf(sn));
-        final CashModInfo z = getModInfo(sn);
-        if (z != null && z.showUp) {
-            return z.toCItem(stats); //null doesnt matter
+    /**
+     * item 對應 sn 列表
+     */
+    public final List<CashItemInfo> getPackageItems(int itemId)
+    {
+        if (this.packages.get(itemId) != null) {
+            return this.packages.get(itemId);
         }
-        if (stats == null || !stats.onSale()) {
-            return null;
-        }
-        //hmm
-        return stats;
-    }
 
-    public final List<CashItemInfo> getPackageItems(int itemId) {
-        if (itemPackage.get(itemId) != null) {
-            return itemPackage.get(itemId);
-        }
-        final List<CashItemInfo> packageItems = new ArrayList<CashItemInfo>();
+        final List<CashItemInfo> packageItems = new ArrayList<>();
+        final MapleData b = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Etc.wz")).getData("CashPackage.img");
 
-        final MapleData b = data.getData("CashPackage.img");
         if (b == null || b.getChildByPath(itemId + "/SN") == null) {
             return null;
         }
+
         for (MapleData d : b.getChildByPath(itemId + "/SN").getChildren()) {
-            packageItems.add(itemStats.get(Integer.valueOf(MapleDataTool.getIntConvert(d))));
+            packageItems.add(this.items.get(MapleDataTool.getIntConvert(d)));
         }
-        itemPackage.put(itemId, packageItems);
+
+        this.packages.put(itemId, packageItems);
+
         return packageItems;
     }
 
-    public final CashModInfo getModInfo(int sn) {
-        CashModInfo ret = itemMods.get(sn);
-        if (ret == null) {
-            if (initialized) {
-                return null;
-            }
-            try {
-                Connection con = DatabaseConnection.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT * FROM cashshop_modified_items WHERE serial = ?");
-                ps.setInt(1, sn);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    ret = new CashModInfo(sn, rs.getInt("discount_price"), rs.getInt("mark"), rs.getInt("showup") > 0, rs.getInt("itemid"), rs.getInt("priority"), rs.getInt("package") > 0, rs.getInt("period"), rs.getInt("gender"), rs.getInt("count"), rs.getInt("meso"), rs.getInt("unk_1"), rs.getInt("unk_2"), rs.getInt("unk_3"), rs.getInt("extra_flags"));
-                    itemMods.put(sn, ret);
-                }
-                rs.close();
-                ps.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    /**
+     * 商品資訊
+     */
+    public final CashItemInfo getItem(int sn)
+    {
+        final CashItemInfo item = this.items.get(sn);
+
+        if (item == null || !item.getShowUp()) {
+            return null;
         }
-        return ret;
+
+        return item;
     }
 
-    public final Collection<CashModInfo> getAllModInfo() {
-        if (!initialized) {
+    /**
+     * 所有商品資訊
+     */
+    public final Collection<CashItemInfo> getAllItems()
+    {
+        if (!this.initialized) {
             initialize();
         }
-        return itemMods.values();
+
+        return this.items.values();
     }
 
-    public final int[] getBestItems() {
-        return bestItems;
+    /**
+     * 人氣商品
+     */
+    public final int[] getTopItems()
+    {
+        return topItems;
     }
 }

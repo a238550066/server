@@ -1,6 +1,31 @@
+/*
+ * TMS 113 handling.cashshop.handler/CashShopOperation.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package handling.cashshop.handler;
 
-import java.rmi.RemoteException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.HashMap;
@@ -13,6 +38,7 @@ import client.inventory.MapleInventoryType;
 import client.inventory.MapleRing;
 import client.inventory.MapleInventoryIdentifier;
 import client.inventory.IItem;
+import database.DatabaseConnection;
 import handling.cashshop.CashShopServer;
 import handling.channel.ChannelServer;
 import handling.world.CharacterTransfer;
@@ -29,9 +55,64 @@ import tools.packet.MTSCSPacket;
 import tools.Pair;
 import tools.data.input.SeekableLittleEndianAccessor;
 
-public class CashShopOperation {
+public class CashShopOperation
+{
+    public static void enterCashShop(final int playerId, final MapleClient c)
+    {
+        boolean isMTS = false;
 
-    public static void LeaveCS(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr) {
+        CharacterTransfer transfer = CashShopServer.getPlayerStorage().getPendingCharacter(playerId);
+
+        if (transfer == null) {
+            transfer = CashShopServer.getPlayerStorageMTS().getPendingCharacter(playerId);
+
+            if (transfer == null) {
+                c.getSession().close();
+                return;
+            }
+
+            isMTS = true;
+        }
+
+        MapleCharacter chr = MapleCharacter.reconstructChr(transfer, c, false);
+
+        c.setPlayer(chr);
+        c.setAccID(chr.getAccountID());
+
+        if (!c.checkIPAddress()) { // Remote hack
+            c.getSession().close();
+            return;
+        }
+
+        final int state = c.getLoginState();
+
+        if (state == MapleClient.LOGIN_SERVER_TRANSITION || state == MapleClient.CHANGE_CHANNEL) {
+            if (World.isCharacterListConnected(c.loadCharacterNames(c.getWorld()))) {
+                c.setPlayer(null);
+                c.getSession().close();
+                return;
+            }
+        }
+
+        c.updateLoginState(MapleClient.LOGIN_LOGGEDIN, c.getSessionIPAddress());
+
+        if (isMTS) {
+            CashShopServer.getPlayerStorageMTS().registerPlayer(chr);
+
+            c.getSession().write(MTSCSPacket.startMTS(chr, c));
+
+            MTSOperation.MTSUpdate(MTSStorage.getInstance().getCart(c.getPlayer().getId()), c);
+        } else {
+            CashShopServer.getPlayerStorage().registerPlayer(chr);
+
+            c.getSession().write(MTSCSPacket.warpCS(c));
+
+            cashShopUpdate(c);
+        }
+    }
+
+    public static void leaveCashShop(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr)
+    {
         CashShopServer.getPlayerStorageMTS().deregisterPlayer(chr);
         CashShopServer.getPlayerStorage().deregisterPlayer(chr);
         c.updateLoginState(MapleClient.LOGIN_SERVER_TRANSITION, c.getSessionIPAddress());
@@ -41,91 +122,67 @@ public class CashShopOperation {
             World.ChannelChange_Data(new CharacterTransfer(chr), chr.getId(), c.getChannel());
             c.getSession().write(MaplePacketCreator.getChannelChange(Integer.parseInt(ChannelServer.getInstance(c.getChannel()).getIP().split(":")[1])));
         } finally {
-//          c.getSession().close();
-
             chr.saveToDB(false, true);
             c.setPlayer(null);
             c.setReceiving(false);
         }
     }
 
-    public static void EnterCS(final int playerid, final MapleClient c) {
-        CharacterTransfer transfer = CashShopServer.getPlayerStorage().getPendingCharacter(playerid);
-        boolean mts = false;
-        if (transfer == null) {
-            transfer = CashShopServer.getPlayerStorageMTS().getPendingCharacter(playerid);
-            mts = true;
-            if (transfer == null) {
-                c.getSession().close();
-                return;
-            }
-        }
-        MapleCharacter chr = MapleCharacter.ReconstructChr(transfer, c, false);
-
-        c.setPlayer(chr);
-        c.setAccID(chr.getAccountID());
-
-        if (!c.CheckIPAddress()) { // Remote hack
-            c.getSession().close();
-            return;
-        }
-
-        final int state = c.getLoginState();
-        boolean allowLogin = false;
-        if (state == MapleClient.LOGIN_SERVER_TRANSITION || state == MapleClient.CHANGE_CHANNEL) {
-            if (!World.isCharacterListConnected(c.loadCharacterNames(c.getWorld()))) {
-                allowLogin = true;
-            }
-        }
-        if (!allowLogin) {
-            c.setPlayer(null);
-            c.getSession().close();
-            return;
-        }
-        c.updateLoginState(MapleClient.LOGIN_LOGGEDIN, c.getSessionIPAddress());
-        if (mts) {
-            CashShopServer.getPlayerStorageMTS().registerPlayer(chr);
-            c.getSession().write(MTSCSPacket.startMTS(chr, c));
-            MTSOperation.MTSUpdate(MTSStorage.getInstance().getCart(c.getPlayer().getId()), c);
-        } else {
-            CashShopServer.getPlayerStorage().registerPlayer(chr);
-            c.getSession().write(MTSCSPacket.warpCS(c));
-            CSUpdate(c);
-        }
-    }
-
-    public static void CSUpdate(final MapleClient c) {
+    public static void cashShopUpdate(final MapleClient c)
+    {
         c.getSession().write(MTSCSPacket.getCSGifts(c));
-		c.getSession().write(MTSCSPacket.showAcc(c));
+        c.getSession().write(MTSCSPacket.showAcc(c));
         doCSPackets(c);
         c.getSession().write(MTSCSPacket.sendWishList(c.getPlayer(), false));
     }
 
-    public static void CouponCode(final String code, final MapleClient c) {
-        boolean validcode = false;
+    public static void couponCode(final String code, final MapleClient c)
+    {
+        final Connection con = DatabaseConnection.getConnection();
+
+        PreparedStatement ps;
+
+        boolean validCode = false;
         int type = -1;
         int item = -1;
 
         try {
-            validcode = MapleCharacterUtil.getNXCodeValid(code.toUpperCase(), validcode);
+            ps = con.prepareStatement("SELECT `valid`, `type`, `item` FROM `nxcode` WHERE `code` = ?");
+
+            ps.setString(1, code);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                validCode = rs.getInt("valid") > 0;
+                type = rs.getInt("type");
+                item = rs.getInt("item");
+            }
+
+            rs.close();
+            ps.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        if (validcode) {
-            try {
-                type = MapleCharacterUtil.getNXCodeType(code);
-                item = MapleCharacterUtil.getNXCodeItem(code);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        if (!validCode) {
+            c.getSession().write(MTSCSPacket.sendCSFail(0xD4));
+        } else {
             if (type != 4) {
                 try {
-                    MapleCharacterUtil.setNXCodeUsed(c.getPlayer().getName(), code);
+                    ps = con.prepareStatement("UPDATE `nxcode` SET `user` = ?, `valid` = 0 WHERE `code` = ?");
+
+                    ps.setString(1, c.getPlayer().getName());
+                    ps.setString(2, code);
+
+                    ps.execute();
+
+                    ps.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
             }
+
             /*
              * Explanation of type!
              * Basically, this makes coupon codes do
@@ -137,8 +194,10 @@ public class CashShopOperation {
              * Type 4: A-Cash Coupon that can be used over and over
              * Type 5: Mesos
              */
-            Map<Integer, IItem> itemz = new HashMap<Integer, IItem>();
+            Map<Integer, IItem> itemz = new HashMap<>();
+
             int maplePoints = 0, mesos = 0;
+
             switch (type) {
                 case 1:
                 case 2:
@@ -170,18 +229,20 @@ public class CashShopOperation {
                     mesos = item;
                     break;
             }
+
             c.getSession().write(MTSCSPacket.showCouponRedeemedItem(itemz, mesos, maplePoints, c));
-        } else {
-            c.getSession().write(MTSCSPacket.sendCSFail(validcode ? 0xA5 : 0xA7)); //A1, 9F
         }
+
         doCSPackets(c);
     }
 
-    public static final void BuyCashItem(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr) {
+    public static void buyCashItem(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr)
+    {
         final int action = slea.readByte();
+
         if (action == 0) {
             slea.skip(2);
-            CouponCode(slea.readMapleAsciiString(), c);
+            couponCode(slea.readMapleAsciiString(), c);
         } else if (action == 3) {
             final byte type = slea.readByte() ==0 ?(byte)1 : (byte)2;
             //slea.skip(1);
