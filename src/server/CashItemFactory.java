@@ -54,7 +54,7 @@ public class CashItemFactory {
 
     public void initialize()
     {
-        System.out.println("載入購物商城物品...");
+        System.out.println("載入購物商場物品...");
 
         try {
             final Connection con = DatabaseConnection.getConnection();
