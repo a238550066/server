@@ -62,21 +62,23 @@ public class MTSCSPacket {
         mplew.writeInt(0);
         mplew.writeShort(cmi.size());
         for (CashItemInfo cm : cmi) {
-			addModCashItemInfo(mplew, cm);
+            addModCashItemInfo(mplew, cm);
         }
-		mplew.write(warpCS);
-		mplew.write(warpCS2);
+
+        mplew.write(warpCS);
+        mplew.write(warpCS2);
 
         int[] itemz = CashItemFactory.getInstance().getTopItems();
         for (int i = 1; i <= 8; i++) {
-			for (int j = 0; j <= 1; j++) {
-				for (int item : itemz) {
-					mplew.writeInt(i);
-					mplew.writeInt(j);
-					mplew.writeInt(item);
-				}
-			}
-         }
+            for (int j = 0; j <= 1; j++) {
+                for (int item : itemz) {
+                    mplew.writeInt(i);
+                    mplew.writeInt(j);
+                    mplew.writeInt(item);
+                }
+            }
+        }
+
         mplew.writeShort(0); //stock
         mplew.writeShort(0); //limited goods 1-> A2 35 4D 00 CE FD FD 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 FF FF FF FF FF FF FF FF 06 00 00 00 1F 1C 32 01 A7 3F 32 01 FF FF FF FF FF FF FF FF 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00
         mplew.write(0); //eventON
@@ -378,8 +380,8 @@ public class MTSCSPacket {
 
         if ((flags & 0x200) != 0) {
             mplew.write(item.gender);
-
         }
+
         if ((flags & 0x400) != 0) {
             mplew.write(item.showUp ? 1 : 0);
         }
