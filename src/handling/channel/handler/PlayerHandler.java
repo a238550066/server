@@ -1043,6 +1043,7 @@ Now: D7 00 44 01 00 00 00 00 06 1E 00 00 EA FE D7 00 84 00 00 00 71 00 04 78 00 
                     }, 500 * i + 500);
                 }
             }
+
             int count = c.getPlayer().getFallCounter();
             if (map.getFootholds().findBelow(c.getPlayer().getPosition()) == null && c.getPlayer().getPosition().y > c.getPlayer().getOldPosition().y && c.getPlayer().getPosition().x == c.getPlayer().getOldPosition().x) {
                 if (count > 10) {

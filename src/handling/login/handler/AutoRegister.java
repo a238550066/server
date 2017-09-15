@@ -1,3 +1,26 @@
+/*
+ * TMS 113 handling/login/handler/AutoRegister.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package handling.login.handler;
 
 import client.LoginCrypto;
@@ -7,68 +30,58 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class AutoRegister {
-
-    private static final int ACCOUNTS_PER_IP = 1;
-    public static boolean autoRegister = true;
+public class AutoRegister
+{
     public static boolean success = false;
 
-    public static boolean getAccountExists(String login) {
-        boolean accountExists = false;
-        Connection con = DatabaseConnection.getConnection();
+    /**
+     * 確認帳號是否重複
+     */
+    static boolean isAccountExists(String login)
+    {
         try {
-            PreparedStatement ps = con.prepareStatement("SELECT name FROM accounts WHERE name = ?");
+            final Connection con = DatabaseConnection.getConnection();
+
+            PreparedStatement ps = con.prepareStatement("SELECT `name` FROM `accounts` WHERE `name` = ?");
+
             ps.setString(1, login);
+
             ResultSet rs = ps.executeQuery();
+
             if (rs.first()) {
-                accountExists = true;
+                return true;
             }
         } catch (SQLException ex) {
-            System.out.println(ex);
+            System.out.println(ex.getMessage());
         }
-        return accountExists;
+
+        return false;
     }
 
-    public static void createAccount(String login, String pwd, String eip) {
-        String sockAddr = eip;
-        Connection con;
-
+    /**
+     * 自動創建帳號
+     */
+    static void createAccount(String username, String password, String ipAddress)
+    {
         try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception ex) {
-            System.out.println(ex);
-            return;
-        }
+            final Connection con = DatabaseConnection.getConnection();
 
-        try {
-            ResultSet rs;
-            PreparedStatement ipc = con.prepareStatement("SELECT SessionIP FROM accounts WHERE SessionIP = ?");
+            PreparedStatement ps = con.prepareStatement("INSERT INTO `accounts` (`name`, `password`, `email`, `birthday`, `macs`, `SessionIP`) VALUES (?, ?, ?, ?, ?, ?)");
 
-            ipc.setString(1, sockAddr.substring(1, sockAddr.lastIndexOf(':')));
-            rs = ipc.executeQuery();
-            if (rs.first() == false || rs.last() == true && rs.getRow() < ACCOUNTS_PER_IP) {
+            ps.setString(1, username);
+            ps.setString(2, LoginCrypto.hexSha1(password));
+            ps.setString(3, "autoregister@mail.com");
+            ps.setString(4, "2008-04-07");
+            ps.setString(5, "00-00-00-00-00-00");
+            ps.setString(6, ipAddress.substring(1, ipAddress.lastIndexOf(':')));
 
-                PreparedStatement ps = con.prepareStatement("INSERT INTO accounts (name, password, email, birthday, macs, SessionIP) VALUES (?, ?, ?, ?, ?, ?)");/*) {*/
+            ps.executeUpdate();
 
-                ps.setString(1, login);
-                ps.setString(2, LoginCrypto.hexSha1(pwd));
-                ps.setString(3, "autoregister@mail.com");
-                ps.setString(4, "2008-04-07");
-                ps.setString(5, "00-00-00-00-00-00");
-                ps.setString(6, sockAddr.substring(1, sockAddr.lastIndexOf(':')));
-                ps.executeUpdate();
-            }
+            ps.close();
 
             success = true;
         } catch (SQLException ex) {
-            System.out.println(ex);
-            return;
+            System.out.println(ex.getMessage());
         }
-        /*                }
-         }
-         rs.close();
-         } catch (SQLException ex) {
-         System.out.println(ex);
-         }*/
     }
 }

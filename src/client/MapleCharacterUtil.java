@@ -175,15 +175,6 @@ public class MapleCharacterUtil {
         return null;
     }
 
-    public static void setNXCodeUsed(String name, String code) throws SQLException {
-        Connection con = DatabaseConnection.getConnection();
-        PreparedStatement ps = con.prepareStatement("UPDATE nxcode SET `user` = ?, `valid` = 0 WHERE code = ?");
-        ps.setString(1, name);
-        ps.setString(2, code);
-        ps.execute();
-        ps.close();
-    }
-
     public static void sendNote(String to, String name, String msg, int fame) {
         try {
             Connection con = DatabaseConnection.getConnection();
@@ -198,46 +189,5 @@ public class MapleCharacterUtil {
         } catch (SQLException e) {
             System.err.println("Unable to send note" + e);
         }
-    }
-
-    public static boolean getNXCodeValid(String code, boolean validcode) throws SQLException {
-        Connection con = DatabaseConnection.getConnection();
-        PreparedStatement ps = con.prepareStatement("SELECT `valid` FROM nxcode WHERE code = ?");
-        ps.setString(1, code);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            validcode = rs.getInt("valid") > 0;
-        }
-        rs.close();
-        ps.close();
-        return validcode;
-    }
-
-    public static int getNXCodeType(String code) throws SQLException {
-        int type = -1;
-        Connection con = DatabaseConnection.getConnection();
-        PreparedStatement ps = con.prepareStatement("SELECT `type` FROM nxcode WHERE code = ?");
-        ps.setString(1, code);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            type = rs.getInt("type");
-        }
-        rs.close();
-        ps.close();
-        return type;
-    }
-
-    public static int getNXCodeItem(String code) throws SQLException {
-        int item = -1;
-        Connection con = DatabaseConnection.getConnection();
-        PreparedStatement ps = con.prepareStatement("SELECT `item` FROM nxcode WHERE code = ?");
-        ps.setString(1, code);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            item = rs.getInt("item");
-        }
-        rs.close();
-        ps.close();
-        return item;
     }
 }

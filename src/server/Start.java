@@ -81,7 +81,7 @@ public class Start
         ChannelServer.startChannel_Main();
         CashShopServer.run_startup_configurations();
         CheatTimer.getInstance().register(AutobanManager.getInstance(), 60000);
-        LoginServer.run_startup_configurations();
+        LoginServer.runStartupConfigurations();
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Shutdown()));
 

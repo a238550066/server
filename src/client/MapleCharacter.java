@@ -299,7 +299,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return ret;
     }
 
-    public final static MapleCharacter ReconstructChr(final CharacterTransfer ct, final MapleClient client, final boolean isChannel) {
+    public final static MapleCharacter reconstructChr(final CharacterTransfer ct, final MapleClient client, final boolean isChannel) {
         final MapleCharacter ret = new MapleCharacter(true); // Always true, it's change channel
         ret.client = client;
         if (!isChannel) {
@@ -837,7 +837,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return ret;
     }
 
-    public static void saveNewCharToDB(final MapleCharacter chr, final int type, final boolean db) {
+    public static void saveNewCharToDB(final MapleCharacter chr, final int type) {
         Connection con = DatabaseConnection.getConnection();
 
         PreparedStatement ps = null;

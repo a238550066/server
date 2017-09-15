@@ -253,7 +253,7 @@ public class LoginPacket {
         return mplew.getPacket();
     }
 
-    public static final MaplePacket getCharList(final boolean secondpw, final List<MapleCharacter> chars, int charslots) {
+    public static final MaplePacket getCharList(final List<MapleCharacter> chars, int charslots) {
         final MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
 
         mplew.writeShort(SendPacketOpcode.CHARLIST.getValue());

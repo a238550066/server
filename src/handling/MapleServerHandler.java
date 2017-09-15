@@ -42,7 +42,6 @@ import java.io.FileWriter;
 import java.lang.management.ManagementFactory;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.management.MBeanServer;
@@ -58,7 +57,6 @@ import tools.Pair;
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IdleStatus;
 import org.apache.mina.common.IoSession;
-import server.MTSStorage;
 import server.ServerProperties;
 import tools.FileoutputUtil;
 
@@ -458,7 +456,8 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
         super.sessionIdle(session, status);
     }
 
-    public static final void handlePacket(final RecvPacketOpcode header, final SeekableLittleEndianAccessor slea, final MapleClient c, final boolean cs) throws Exception {
+    public static void handlePacket(final RecvPacketOpcode header, final SeekableLittleEndianAccessor slea, final MapleClient c, final boolean cs) throws Exception
+    {
         switch (header) {
             case PONG:
                 c.pongReceived();
@@ -467,41 +466,40 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 // Does nothing for now, HackShield's heartbeat
                 break;
             case HELLO_LOGIN:
-                CharLoginHandler.Welcome(c);
                 // Does nothing for now, HackShield's heartbeat
                 break;
             case HELLO_CHANNEL:
-                CharLoginHandler.Welcome(c);
+                CharLoginHandler.welcome(c);
                 break;
             case LOGIN_PASSWORD:
                 CharLoginHandler.login(slea, c);
                 break;
             case SERVERLIST_REQUEST:
-                CharLoginHandler.ServerListRequest(c);
+                CharLoginHandler.serverListRequest(c);
                 break;
             case CHARLIST_REQUEST:
-                CharLoginHandler.CharlistRequest(slea, c);
+                CharLoginHandler.charListRequest(slea, c);
                 break;
             case SERVERSTATUS_REQUEST:
-                CharLoginHandler.ServerStatusRequest(c);
+                CharLoginHandler.serverStatusRequest(c);
                 break;
             case CHECK_CHAR_NAME:
-                CharLoginHandler.CheckCharName(slea.readMapleAsciiString(), c);
+                CharLoginHandler.checkCharName(slea.readMapleAsciiString(), c);
                 break;
             case CREATE_CHAR:
-                CharLoginHandler.CreateChar(slea, c);
+                CharLoginHandler.createChar(slea, c);
                 break;
             case DELETE_CHAR:
-                CharLoginHandler.DeleteChar(slea, c);
+                CharLoginHandler.deleteChar(slea, c);
                 break;
             case CHAR_SELECT:
-                CharLoginHandler.Character_WithoutSecondPassword(slea, c);
+                CharLoginHandler.selectChar(slea, c);
                 break;
             case AUTH_SECOND_PASSWORD:
-                CharLoginHandler.Character_WithSecondPassword(slea, c);
+                CharLoginHandler.authSecondPassword(slea, c);
                 break;
             case SET_GENDER:
-                CharLoginHandler.SetGenderRequest(slea, c);
+                CharLoginHandler.setGenderRequest(slea, c);
                 break;
             case RSA_KEY: // Fix this somehow
                 c.getSession().write(LoginPacket.StrangeDATA());
@@ -513,7 +511,7 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
             case PLAYER_LOGGEDIN:
                 final int playerid = slea.readInt();
                 if (cs) {
-                    CashShopOperation.EnterCS(playerid, c);
+                    CashShopOperation.enterCashShop(playerid, c);
                 } else {
                     InterServerHandler.Loggedin(playerid, c);
                 }
@@ -588,7 +586,7 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 break;
             case CHANGE_MAP:
                 if (cs) {
-                    CashShopOperation.LeaveCS(slea, c, c.getPlayer());
+                    CashShopOperation.leaveCashShop(slea, c, c.getPlayer());
                 } else {
                     PlayerHandler.ChangeMap(slea, c, c.getPlayer());
                 }
@@ -794,16 +792,16 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 UserInterfaceHandler.ShipObjectRequest(slea.readInt(), c);
                 break;
             case BUY_CS_ITEM:
-                CashShopOperation.BuyCashItem(slea, c, c.getPlayer());
+                CashShopOperation.buyCashItem(slea, c, c.getPlayer());
                 break;
             case COUPON_CODE:
                 FileoutputUtil.log(FileoutputUtil.PacketEx_Log, "Coupon : \n" + slea.toString(true));
                 System.out.println(slea.toString());
                 slea.skip(2);
-                CashShopOperation.CouponCode(slea.readMapleAsciiString(), c);
+                CashShopOperation.couponCode(slea.readMapleAsciiString(), c);
                 break;
             case CS_UPDATE:
-                CashShopOperation.CSUpdate(c);
+                CashShopOperation.cashShopUpdate(c);
                 break;
             case TOUCHING_MTS:
 //                MTSOperation.MTSUpdate(MTSStorage.getInstance().getCart(c.getPlayer().getId()), c);

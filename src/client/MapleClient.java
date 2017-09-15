@@ -106,27 +106,27 @@ public class MapleClient implements Serializable {
     }
 
     public final MapleAESOFB getReceiveCrypto() {
-        return receive;
+        return this.receive;
     }
 
     public final MapleAESOFB getSendCrypto() {
-        return send;
+        return this.send;
     }
 
     public final IoSession getSession() {
-        return session;
+        return this.session;
     }
 
     public final Lock getLock() {
-        return mutex;
+        return this.mutex;
     }
 
     public final Lock getNPCLock() {
-        return npc_mutex;
+        return this.npc_mutex;
     }
 
     public MapleCharacter getPlayer() {
-        return player;
+        return this.player;
     }
 
     public void setPlayer(MapleCharacter player) {
@@ -134,54 +134,69 @@ public class MapleClient implements Serializable {
     }
 
     public void createdChar(final int id) {
-        allowedChar.add(id);
+        this.allowedChar.add(id);
     }
 
     public final boolean login_Auth(final int id) {
-        return allowedChar.contains(id);
+        return this.allowedChar.contains(id);
     }
 
-    public final List<MapleCharacter> loadCharacters(final int serverId) { // TODO make this less costly zZz
-        final List<MapleCharacter> chars = new LinkedList<MapleCharacter>();
+    public final List<MapleCharacter> loadCharacters(final int serverId)
+    {
+        // TODO make this less costly zZz
+        final List<MapleCharacter> chars = new LinkedList<>();
 
         for (final CharNameAndId cni : loadCharactersInternal(serverId)) {
             final MapleCharacter chr = MapleCharacter.loadCharFromDB(cni.id, this, false);
+
             chars.add(chr);
-            allowedChar.add(chr.getId());
+
+            this.allowedChar.add(chr.getId());
         }
+
         return chars;
     }
 
-    public List<String> loadCharacterNames(int serverId) {
-        List<String> chars = new LinkedList<String>();
+    public List<String> loadCharacterNames(int serverId)
+    {
+        List<String> chars = new LinkedList<>();
+
         for (CharNameAndId cni : loadCharactersInternal(serverId)) {
             chars.add(cni.name);
         }
+
         return chars;
     }
 
-    private List<CharNameAndId> loadCharactersInternal(int serverId) {
-        List<CharNameAndId> chars = new LinkedList<CharNameAndId>();
+    private List<CharNameAndId> loadCharactersInternal(int serverId)
+    {
+        List<CharNameAndId> chars = new LinkedList<>();
+
         try {
-            Connection con = DatabaseConnection.getConnection();
-            PreparedStatement ps = con.prepareStatement("SELECT id, name FROM characters WHERE accountid = ? AND world = ?");
-            ps.setInt(1, accId);
+            final Connection con = DatabaseConnection.getConnection();
+
+            PreparedStatement ps = con.prepareStatement("SELECT `id`, `name` FROM `characters` WHERE `accountid` = ? AND `world` = ?");
+
+            ps.setInt(1, this.accId);
             ps.setInt(2, serverId);
 
             ResultSet rs = ps.executeQuery();
+
             while (rs.next()) {
                 chars.add(new CharNameAndId(rs.getString("name"), rs.getInt("id")));
             }
+
             rs.close();
             ps.close();
         } catch (SQLException e) {
             System.err.println("error loading characters internal" + e);
         }
+
         return chars;
     }
 
     public boolean isLoggedIn() {
-        return loggedIn;
+        return this.loggedIn;
     }
 
     private Calendar getTempBanCalendar(ResultSet rs) throws SQLException {
@@ -402,6 +417,7 @@ public class MapleClient implements Serializable {
                     loginOk = 3;
                 } else {
                     // why banned will be -1?
+                    // @todo fix this
                     if (banned == -1) {
                         unban();
                     }
@@ -894,7 +910,7 @@ public class MapleClient implements Serializable {
         return session.getRemoteAddress().toString().split(":")[0];
     }
 
-    public final boolean CheckIPAddress() {
+    public final boolean checkIPAddress() {
         try {
             final PreparedStatement ps = DatabaseConnection.getConnection().prepareStatement("SELECT SessionIP FROM accounts WHERE id = ?");
             ps.setInt(1, this.accId);
@@ -1156,13 +1172,15 @@ public class MapleClient implements Serializable {
         this.idleTask = idleTask;
     }
 
-    protected static final class CharNameAndId {
-
+    protected static final class CharNameAndId
+    {
         public final String name;
         public final int id;
 
-        public CharNameAndId(final String name, final int id) {
+        CharNameAndId(final String name, final int id)
+        {
             super();
+
             this.name = name;
             this.id = id;
         }

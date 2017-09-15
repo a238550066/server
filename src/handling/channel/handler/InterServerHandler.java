@@ -27,7 +27,6 @@ import client.CharacterNameAndId;
 import client.MapleCharacter;
 import client.MapleClient;
 import client.MapleQuestStatus;
-import client.MapleBuffStat;
 import client.SkillFactory;
 import handling.MaplePacket;
 import handling.cashshop.CashShopServer;
@@ -41,9 +40,7 @@ import handling.world.PartyOperation;
 import handling.world.PlayerBuffStorage;
 import handling.world.World;
 import handling.world.guild.MapleGuild;
-import server.MapleTrade;
 import server.maps.FieldLimitType;
-import server.shops.IMaplePlayerShop;
 import server.shops.HiredFishing;
 import tools.FileoutputUtil;
 import tools.MaplePacketCreator;
@@ -98,12 +95,12 @@ public class InterServerHandler {
         if (transfer == null) { // Player isn't in storage, probably isn't CC
             player = MapleCharacter.loadCharFromDB(playerid, c, true);
         } else {
-            player = MapleCharacter.ReconstructChr(transfer, c, true);
+            player = MapleCharacter.reconstructChr(transfer, c, true);
         }
         c.setPlayer(player);
         c.setAccID(player.getAccountID());
 
-        if (!c.CheckIPAddress()) { // Remote hack
+        if (!c.checkIPAddress()) { // Remote hack
             c.getSession().close();
             return;
         }
