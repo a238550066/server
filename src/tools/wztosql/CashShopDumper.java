@@ -1,176 +1,93 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * TMS 113 tools/wztosql/CashShopDumper.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package tools.wztosql;
 
-import database.DatabaseConnection;
-import client.inventory.MapleInventoryType;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+
+import client.inventory.MapleInventoryType;
+import database.DatabaseConnection;
 import provider.MapleData;
-import provider.MapleDataProvider;
 import provider.MapleDataProviderFactory;
 import provider.MapleDataTool;
 import server.CashItemFactory;
-import server.CashItemInfo.CashModInfo;
 import server.MapleItemInformationProvider;
 
-/**
- *
- * @author Flower
- */
-public class CashShopDumper {
+public class CashShopDumper
+{
+    public static void main(String[] args)
+    {
+        final Connection con = DatabaseConnection.getConnection();
 
-    private static final MapleDataProvider data = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Etc.wz"));
-
-    public static final CashModInfo getModInfo(int sn) {
-        CashModInfo ret = null;
-
-        Connection con = DatabaseConnection.getConnection();
-        try (PreparedStatement ps = con.prepareStatement("SELECT * FROM cashshop_modified_items WHERE serial = ?")) {
-            ps.setInt(1, sn);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    ret = new CashModInfo(sn, rs.getInt("discount_price"), rs.getInt("mark"), rs.getInt("showup") > 0, rs.getInt("itemid"), rs.getInt("priority"), rs.getInt("package") > 0, rs.getInt("period"), rs.getInt("gender"), rs.getInt("count"), rs.getInt("meso"), rs.getInt("unk_1"), rs.getInt("unk_2"), rs.getInt("unk_3"), rs.getInt("extra_flags"));
-
-                }
-            }
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }
-
-        return ret;
-    }
-
-    public static void main(String[] args) {
-        CashModInfo m = getModInfo(20000393);
         CashItemFactory.getInstance().initialize();
-        Collection<CashModInfo> list = CashItemFactory.getInstance().getAllModInfo();
-        Connection con = DatabaseConnection.getConnection();
 
-        final List<Integer> itemids = new ArrayList<Integer>();
-        List<Integer> qq = new ArrayList<Integer>();
-
-        Map<Integer, List<String>> dics = new HashMap<>();
-
-        for (MapleData field : data.getData("Commodity.img").getChildren()) {
+        for (MapleData field : MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Etc.wz")).getData("Commodity.img").getChildren()) {
             try {
-                final int itemId = MapleDataTool.getIntConvert("ItemId", field, 0);
-                final int sn = MapleDataTool.getIntConvert("SN", field, 0);
-                final int count = MapleDataTool.getIntConvert("Count", field, 0);
-                final int price = MapleDataTool.getIntConvert("Price", field, 0);
-                final int priority = MapleDataTool.getIntConvert("Priority", field, 0);
-                final int period = MapleDataTool.getIntConvert("Period", field, 0);
+                final int sn = MapleDataTool.getIntConvert("SN", field, -1);
+                final int itemId = MapleDataTool.getIntConvert("ItemId", field, -1);
+                final int count = MapleDataTool.getIntConvert("Count", field, -1);
+                final int price = MapleDataTool.getIntConvert("Price", field, -1);
+                final int period = MapleDataTool.getIntConvert("Period", field, -1);
+                final int priority = MapleDataTool.getIntConvert("Priority", field, -1);
                 final int gender = MapleDataTool.getIntConvert("Gender", field, -1);
-                final int meso = MapleDataTool.getIntConvert("Meso", field, 0);
-                //if(qq.contains(itemId))
-                //    continue;
-                if (itemId == 0) {
+
+                if (sn == -1 || itemId == -1 || count == -1 || price == -1 || period == -1 || priority == -1 || gender == -1) {
                     continue;
                 }
 
-                int cat = itemId / 10000;
-                if (dics.get(cat) == null) {
-                    dics.put(cat, new ArrayList());
-                }
-                boolean check = false;
-                if (meso > 0) {
-                    check = true;
-                }
-                if (MapleItemInformationProvider.getInstance().getInventoryType(itemId) == MapleInventoryType.EQUIP) {
-                    if (!MapleItemInformationProvider.getInstance().isCashItem(itemId)) {
-                        check = true;
-                    }
-                }
-                if (MapleItemInformationProvider.getInstance().getInventoryType(itemId) == MapleInventoryType.EQUIP) {
-                    if (period > 0) {
-                        check = true;
-                    }
-                }
+                final String name = MapleItemInformationProvider.getInstance().getName(itemId);
 
-                if (check) {
-                    System.out.println(MapleItemInformationProvider.getInstance().getName(itemId));
+                // 略過名稱不存在的物品
+                if (name == null) {
                     continue;
                 }
-                PreparedStatement ps = con.prepareStatement("INSERT INTO cashshop_modified_items (serial, showup,itemid,priority,period,gender,count,meso,discount_price,mark, unk_1, unk_2, unk_3, name) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                ps.setInt(1, sn);
-                ps.setInt(2, 1);
-                ps.setInt(3, 0);
-                ps.setInt(4, 0);
-                ps.setInt(5, period);
-                ps.setInt(6, gender);
-                ps.setInt(7, count > 1 ? count : 0);
-                ps.setInt(8, meso);
-                ps.setInt(9, price);
 
-                qq.add(itemId);
-                ps.setInt(10, 0);
-                ps.setInt(11, 0);
-                ps.setInt(12, 0);
-                ps.setInt(13, 0);
-                ps.setString(14, MapleItemInformationProvider.getInstance().getName(itemId));
+                if (MapleItemInformationProvider.getInstance().getInventoryType(itemId) == MapleInventoryType.EQUIP) {
+                    if (!MapleItemInformationProvider.getInstance().isCashItem(itemId) || period > 0) {
+                        // 略過非點商裝備或有期限的裝備
+                        continue;
+                    }
+                }
 
-                String sql = ps.toString().split(":")[1].trim() + ";";
+                final PreparedStatement ps = con.prepareStatement("INSERT INTO `cashshop_items` (`name`, `sn`, `item_id`, `count`, `price`, `period`, `priority`, `gender`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+                ps.setString(1, name);
+                ps.setInt(2, sn);
+                ps.setInt(3, itemId);
+                ps.setInt(4, count);
+                ps.setInt(5, price);
+                ps.setInt(6, period);
+                ps.setInt(7, priority);
+                ps.setInt(8, gender);
+
                 ps.executeUpdate();
-                dics.get(cat).add("-- " + MapleItemInformationProvider.getInstance().getName(itemId) + "\n" + sql);
                 ps.close();
-
-            } catch (SQLException ex) {
-                System.out.println(ex);
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-
         }
-
-        for (Integer key : dics.keySet()) {
-
-            File fout = new File("cashshopItems/" + key.toString() + ".sql");
-            List<String> l = dics.get(key);
-            FileOutputStream fos = null;
-            try {
-                if (!fout.exists()) {
-                    fout.createNewFile();
-                }
-                fos = new FileOutputStream(fout);
-                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
-                for (int i = 0; i < l.size(); i++) {
-                    bw.write(l.get(i));
-                    bw.newLine();
-                }
-
-                bw.close();
-
-            } catch (FileNotFoundException ex) {
-                System.out.println(ex);
-            } catch (IOException ex) {
-                System.out.println(ex);
-            } finally {
-                try {
-                    if (fos != null) {
-                        fos.close();
-                    }
-                } catch (IOException ex) {
-                    System.out.println(ex);
-                }
-            }
-
-        }
-
     }
 }
