@@ -333,7 +333,11 @@ public class CharLoginHandler
         final int charId = slea.readInt();
 
         if (!c.login_Auth(charId)) {
-            invalidCharDeleteRequest(c);
+            if (c.getPlayer() == null) {
+                System.out.println("Invalid char select request: " + c.getSession().getRemoteAddress().toString());
+                c.getSession().close();
+            }
+
             return;
         }
 
