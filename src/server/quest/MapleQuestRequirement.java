@@ -276,7 +276,16 @@ public class MapleQuestRequirement implements Serializable {
             // 仍是未知
             case infoex:
                 String custom = c.getQuest(this.quest).getCustomData();
-
+                if(null == custom){
+                    final int questid = this.quest.getId();
+                    for (MapleQuest.MedalQuest mq : MapleQuest.MedalQuest.values()){
+                        if( questid == mq.questid){
+                            MapleQuest mqcustom = MapleQuest.getInstance(questid-1995);
+                            custom = c.getQuest(mqcustom).getCustomData();
+                            break;
+                        }
+                    }
+                }
                 return null != custom && this.stringStore.equals(custom);
 
             default:
