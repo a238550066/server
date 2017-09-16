@@ -262,7 +262,7 @@ public class ChannelServer implements Serializable {
 
     public final int getExpRate()
     {
-        return Math.min(expRate + World.getConnected().get(0), 5);
+        return expRate + Math.min(World.getConnected().get(0), 3);
     }
     
     public final void setExpRate(final int expRate) {
@@ -320,7 +320,7 @@ public class ChannelServer implements Serializable {
 
     public final int getMesoRate()
     {
-        return Math.min(mesoRate + World.getConnected().get(0) * 2, 10);
+        return mesoRate + Math.min(World.getConnected().get(0), 5);
     }
 
     public final void setMesoRate(final int mesoRate) {
