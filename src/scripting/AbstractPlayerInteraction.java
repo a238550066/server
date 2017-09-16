@@ -396,6 +396,10 @@ public abstract class AbstractPlayerInteraction {
         c.getPlayer().modifyCSPoints(1, amount, true);
     }
 
+    public final void gainMaplePoint(final int amount) {
+        c.getPlayer().modifyCSPoints(2, amount, true);
+    }
+
     public final void gainItemPeriod(final int id, final short quantity, final int period) { //period is in days
         gainItem(id, quantity, false, period, -1, "");
     }
