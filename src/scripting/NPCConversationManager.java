@@ -48,7 +48,7 @@ import server.MapleInventoryManipulator;
 import server.MapleShopFactory;
 import server.MapleSquad;
 import server.maps.MapleMap;
-import server.maps.Event_DojoAgent;
+import server.maps.EventDojoAgent;
 import server.maps.AramiaFireWorks;
 import server.quest.MapleQuest;
 import tools.MaplePacketCreator;
@@ -65,7 +65,7 @@ import handling.world.guild.MapleGuild;
 import server.MapleCarnivalChallenge;
 import java.util.HashMap;
 import handling.world.guild.MapleGuildAlliance;
-import java.rmi.RemoteException;
+
 import java.util.Arrays;
 import javax.script.Invocable;
 import server.MapleStatEffect;
@@ -982,11 +982,12 @@ public class NPCConversationManager extends AbstractPlayerInteraction {
         c.getPlayer().setDojoRecord(reset);
     }
 
-    public boolean start_DojoAgent(final boolean dojo, final boolean party) {
-        if (dojo) {
-            return Event_DojoAgent.warpStartDojo(c.getPlayer(), party);
-        }
-        return Event_DojoAgent.warpStartAgent(c.getPlayer(), party);
+    /**
+     * 武陵道場 - 開始挑戰
+     */
+    public boolean startDojo(final boolean party)
+    {
+        return EventDojoAgent.start(c.getPlayer(), party);
     }
 
     public boolean start_PyramidSubway(final int pyramid) {

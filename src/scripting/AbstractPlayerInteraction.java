@@ -20,7 +20,6 @@
  */
 package scripting;
 
-import java.rmi.RemoteException;
 import java.awt.Point;
 import java.util.List;
 
@@ -44,7 +43,7 @@ import server.maps.MapleMap;
 import server.maps.MapleReactor;
 import server.maps.MapleMapObject;
 import server.maps.SavedLocationType;
-import server.maps.Event_DojoAgent;
+import server.maps.EventDojoAgent;
 import server.life.MapleMonster;
 import server.life.MapleLifeFactory;
 import server.quest.MapleQuest;
@@ -820,24 +819,22 @@ public abstract class AbstractPlayerInteraction {
         c.getSession().write(MaplePacketCreator.instantMapWarp((byte) 6));
     }
 
-	
-    public final boolean dojoAgent_NextMap(final boolean dojo, final boolean fromresting) {
-        if (dojo) {
-            return Event_DojoAgent.warpNextMap(c.getPlayer(), fromresting, c.getPlayer().getMap());
-        }
-        return Event_DojoAgent.warpNextMap_Agent(c.getPlayer(), fromresting);
+    /**
+     * 武陵道場 - 下一關
+     */
+    public final boolean nextDojo(final boolean fromResting)
+    {
+        return EventDojoAgent.next(c.getPlayer(), fromResting, c.getPlayer().getMap());
     }
 
-
-
-    public final boolean dojoAgent_NextMap(final boolean dojo, final boolean fromresting, final int mapid) {
-        if (dojo) {
-            return Event_DojoAgent.warpNextMap(c.getPlayer(), fromresting, getMap(mapid));
-        }
-        return Event_DojoAgent.warpNextMap_Agent(c.getPlayer(), fromresting);
+    /**
+     * 武陵道場 - 下一關
+     */
+    public final boolean nextDojo(final boolean fromResting, final int mapId)
+    {
+        return EventDojoAgent.next(c.getPlayer(), fromResting, getMap(mapId));
     }
 
-	
     public final int dojo_getPts() {
         return c.getPlayer().getDojo();
     }
