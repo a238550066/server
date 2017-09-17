@@ -36,7 +36,7 @@ public class ShutdownServer implements Runnable {
 
             for (int i : ChannelServer.getAllInstance().toArray(new Integer[0])) {
                 try {
-                    ChannelServer.getInstance(i).shutdown(this);
+                    ChannelServer.getInstance(i).shutdown();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

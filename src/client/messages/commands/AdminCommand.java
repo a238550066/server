@@ -2053,7 +2053,7 @@ public class AdminCommand
 
      @Override
      public int execute(MapleClient c, String[] splitted) {
-     for (Entry<String, MapleSquad> squads : c.getChannelServer().getAllSquads().entrySet()) {
+     for (Entry<String, MapleSquad> squads : c.getChannelServer().getAllMapleSquads().entrySet()) {
      c.getPlayer().dropMessage(5, "TYPE: " + squads.getKey() + ", Leader: " + squads.getValue().getLeader().getName() + ", status: " + squads.getValue().getStatus() + ", numMembers: " + squads.getValue().getSquadSize() + ", numBanned: " + squads.getValue().getBannedMemberSize());
      }
      return 1;
@@ -2063,7 +2063,7 @@ public class AdminCommand
 
         @Override
         public int execute(MapleClient c, String[] splitted) {
-            final Collection<MapleSquad> squadz = new ArrayList<MapleSquad>(c.getChannelServer().getAllSquads().values());
+            final Collection<MapleSquad> squadz = new ArrayList<MapleSquad>(c.getChannelServer().getAllMapleSquads().values());
             for (MapleSquad squads : squadz) {
                 squads.clear();
             }

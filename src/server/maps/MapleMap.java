@@ -446,8 +446,6 @@ public final class MapleMap {
         final int channelDropRate = ChannelServer.getInstance(channel).getDropRate();
         final int channelCashRate = ChannelServer.getInstance(channel).getCashRate();
 
-        final boolean channelAutoPickUpMeso = ChannelServer.getInstance(channel).getAutoPickUpMeso();
-
         byte d = 1;
 
         double showdown = 100.0;
@@ -475,12 +473,6 @@ public final class MapleMap {
 
             if (0 == de.itemId) { // meso
                 int mesos = (int) (de.getQuantity() * (chr.getStat().mesoBuff / 100.0) * chr.getDropMod() * channelMesoRate);
-
-                if (channelAutoPickUpMeso) {
-                    chr.gainMeso(mesos, true);
-
-                    continue;
-                }
 
                 spawnMobMesoDrop(mesos, calcDropPos(pos, mob.getPosition()), mob, chr, false, dropType);
             } else {

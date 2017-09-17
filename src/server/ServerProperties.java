@@ -51,6 +51,32 @@ public class ServerProperties {
 
     }
 
+    public static String get(String key)
+    {
+        return props.getProperty(key);
+    }
+
+    public static int getInt(String key)
+    {
+        return Integer.parseInt(props.getProperty(key));
+    }
+
+    public static int getInt(String key, int def)
+    {
+        String val = props.getProperty(key);
+
+        if (val == null) {
+            return def;
+        }
+
+        return Integer.parseInt(val);
+    }
+
+    public static boolean getBool(String key)
+    {
+        return Boolean.parseBoolean(props.getProperty(key));
+    }
+
     public static String getProperty(String s) {
         return props.getProperty(s);
     }

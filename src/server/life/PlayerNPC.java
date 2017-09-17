@@ -115,7 +115,7 @@ public class PlayerNPC extends MapleNPC {
 
     public static void updateByCharId(MapleCharacter chr) {
         if (World.Find.findChannel(chr.getId()) > 0) { //if character is in cserv
-            for (PlayerNPC npc : ChannelServer.getInstance(World.Find.findChannel(chr.getId())).getAllPlayerNPC()) {
+            for (PlayerNPC npc : ChannelServer.getInstance(World.Find.findChannel(chr.getId())).getAllPlayersNPC()) {
                 npc.update(chr);
             }
         }

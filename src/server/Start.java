@@ -78,7 +78,7 @@ public class Start
         RankingWorker.getInstance().run();
         MTSStorage.load();
         CashItemFactory.getInstance().initialize();
-        ChannelServer.startChannel_Main();
+        ChannelServer.startChannel();
         CashShopServer.run_startup_configurations();
         CheatTimer.getInstance().register(AutobanManager.getInstance(), 60000);
         LoginServer.runStartupConfigurations();
