@@ -400,15 +400,15 @@ public class MapleClient implements Serializable {
                 final String hashedPassword = rs.getString("password");
 
                 this.accId = rs.getInt("id");
-                this.secondPassword = rs.getString("2ndpassword");
+                this.setSecondPassword(rs.getString("2ndpassword"));
                 this.salt2 = rs.getString("salt2");
                 this.gm = rs.getInt("gm") > 0;
                 this.greason = rs.getByte("greason");
                 this.tempban = getTempBanCalendar(rs);
                 this.gender = rs.getByte("gender");
 
-                if (null != this.secondPassword) {
-                    this.secondPassword = LoginCrypto.rand_r(this.secondPassword);
+                if (null != this.getSecondPassword()) {
+                    this.setSecondPassword(LoginCrypto.rand_r(this.getSecondPassword()));
                 }
 
                 if (banned > 0 && ! this.gm) {
@@ -538,7 +538,7 @@ public class MapleClient implements Serializable {
      */
     public boolean checkSecondPassword(String password)
     {
-        return LoginCrypto.checkSaltedSha512Hash(this.secondPassword, password, this.salt2);
+        return LoginCrypto.checkSaltedSha512Hash(this.getSecondPassword(), password, this.salt2);
     }
 
     /**
@@ -552,7 +552,7 @@ public class MapleClient implements Serializable {
 
             PreparedStatement ps = con.prepareStatement("UPDATE `accounts` SET `2ndpassword` = ?, `salt2` = ? WHERE `id` = ?");
 
-            ps.setString(1, LoginCrypto.rand_s(LoginCrypto.makeSaltedSha512Hash(this.secondPassword, newSalt)));
+            ps.setString(1, LoginCrypto.rand_s(LoginCrypto.makeSaltedSha512Hash(this.getSecondPassword(), newSalt)));
             ps.setString(2, newSalt);
             ps.setInt(3, accId);
 
@@ -1019,6 +1019,29 @@ public class MapleClient implements Serializable {
         this.gender = gender;
     }
 
+    public void reloadSecondPassword()
+    {
+        try {
+            final Connection con = DatabaseConnection.getConnection();
+            final PreparedStatement ps = con.prepareStatement("SELECT `2ndpassword`, `salt2` FROM `accounts` WHERE `id` = ?");
+
+            ps.setInt(1, this.getAccID());
+
+            final ResultSet rs = ps.executeQuery();
+
+
+            if (rs.next()) {
+                this.setSecondPassword(LoginCrypto.rand_r(rs.getString("2ndpassword")));
+                this.setSalt2(rs.getString("salt2"));
+            }
+
+            rs.close();
+            ps.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public final String getSecondPassword()
     {
         return this.secondPassword;
@@ -1027,6 +1050,16 @@ public class MapleClient implements Serializable {
     public final void setSecondPassword(final String secondPassword)
     {
         this.secondPassword = secondPassword;
+    }
+
+    public final String getSalt2()
+    {
+        return this.salt2;
+    }
+
+    public final void setSalt2(final String salt2)
+    {
+        this.salt2 = salt2;
     }
 
     public final String getAccountName() {

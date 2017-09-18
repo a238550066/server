@@ -43,6 +43,7 @@ import java.util.*;
 public class DueyHandler
 {
     /*
+     * 9：第二組密碼錯誤
      * 12：楓幣不足！
      * 13：此為不正確的要求！
      * 14：請重新確認收件人的名稱！
@@ -57,10 +58,17 @@ public class DueyHandler
 
         switch (operation) {
             case 1: // 開啟宅配人員對話
-                // @todo fix
                 final String password = slea.readMapleAsciiString();
 
-                c.getSession().write(MaplePacketCreator.sendDuey((byte) 10, retrievePackages(c.getPlayer())));
+                if (c.getSecondPassword() == null) {
+                    c.reloadSecondPassword();
+                }
+
+                if (!c.checkSecondPassword(password)) {
+                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 9, null));
+                } else {
+                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 10, retrievePackages(c.getPlayer())));
+                }
 
                 break;
             case 3: // 寄送包裹
