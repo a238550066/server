@@ -2,71 +2,72 @@ package server;
 
 import client.inventory.IItem;
 
-public class MapleDueyActions {
-
+public class MapleDueyActions
+{
+    private int id = 0;
     private String sender = null;
     private IItem item = null;
     private int mesos = 0;
     private int quantity = 1;
-    private long sentTime;
-    private int packageId = 0;
+    private long sentAt;
 
-    public MapleDueyActions(int pId, IItem item) {
+    public MapleDueyActions(int id)
+    {
+        this.id = id;
+    }
+
+    public MapleDueyActions(int id, IItem item)
+    {
+        this.id = id;
         this.item = item;
-        this.quantity = item.getQuantity();
-        packageId = pId;
+
+        if (this.item != null) {
+            this.quantity = item.getQuantity();
+        }
     }
 
-    public MapleDueyActions(int pId) { // meso only package
-        this.packageId = pId;
+    public final int getId()
+    {
+        return this.id;
     }
 
-    public String getSender() {
-        return sender;
+    public final String getSender()
+    {
+        return this.sender;
     }
 
-    public void setSender(String name) {
-        sender = name;
+    public void setSender(final String name)
+    {
+        this.sender = name;
     }
 
-    public IItem getItem() {
-        return item;
+    public final IItem getItem()
+    {
+        return this.item;
     }
 
-    public int getMesos() {
-        return mesos;
+    public final int getMesos()
+    {
+        return this.mesos;
     }
 
-    public void setMesos(int set) {
-        mesos = set;
+    public void setMesos(final int set)
+    {
+        this.mesos = set;
     }
 
-    public int getQuantity() {
-        return quantity;
+    public final int getQuantity()
+    {
+        return this.quantity;
     }
 
-    public int getPackageId() {
-        return packageId;
+    public void setSentAt(final long sentAt)
+    {
+        this.sentAt = sentAt;
     }
 
-    /*    public boolean isExpired() {
-     Calendar cal1 = Calendar.getInstance();
-     cal1.set(year, month - 1, day);
-     long diff = System.currentTimeMillis() - cal1.getTimeInMillis();
-     int diffDays = (int) Math.abs(diff / (24 * 60 * 60 * 1000));
-     return diffDays > 30;
-     }
-
-     public long sentTimeInMilliseconds() {
-     Calendar cal = Calendar.getInstance();
-     cal.set(year, month, day);
-     return cal.getTimeInMillis();
-     }*/
-    public void setSentTime(long sentTime) {
-        this.sentTime = sentTime;
-    }
-
-    public long getSentTime() {
-        return sentTime;
+    public final long getSentAt()
+    {
+        return this.sentAt;
     }
 }

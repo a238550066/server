@@ -850,7 +850,7 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 MonsterCarnivalHandler.MonsterCarnival(slea, c);
                 break;
             case DUEY_ACTION:
-                DueyHandler.DueyOperation(slea, c);
+                DueyHandler.operate(slea, c);
                 break;
             case USE_HIRED_MERCHANT:
                 HiredMerchantHandler.UseHiredMerchant(slea, c);

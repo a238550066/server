@@ -4043,10 +4043,10 @@ public class MaplePacketCreator {
                 mplew.write(packages.size());
 
                 for (MapleDueyActions dp : packages) {
-                    mplew.writeInt(dp.getPackageId());
+                    mplew.writeInt(dp.getId());
                     mplew.writeAsciiString(dp.getSender(), 15);
                     mplew.writeInt(dp.getMesos());
-                    mplew.writeLong(KoreanDateUtil.getFileTimestamp(dp.getSentTime(), false));
+                    mplew.writeLong(KoreanDateUtil.getFileTimestamp(dp.getSentAt(), false));
                     mplew.writeZeroBytes(205);
 
                     if (dp.getItem() != null) {
