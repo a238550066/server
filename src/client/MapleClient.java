@@ -20,7 +20,6 @@
  */
 package client;
 
-import constants.GameConstants;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.io.Serializable;
 
 import javax.script.ScriptEngine;
@@ -56,9 +57,6 @@ import server.shops.IMaplePlayerShop;
 import tools.FileoutputUtil;
 import tools.MapleAESOFB;
 import tools.packet.LoginPacket;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.mina.common.IoSession;
 import server.Timer.PingTimer;
@@ -89,12 +87,12 @@ public class MapleClient implements Serializable {
     private boolean monitored = false, receiving = true;
     private boolean gm;
     private byte greason = 1, gender = -1;
+    private String secondPassword, salt2;
     public transient short loginAttempt = 0;
     private transient List<Integer> allowedChar = new LinkedList<Integer>();
     private transient Set<String> macs = new HashSet<String>();
     private transient Map<String, ScriptEngine> engines = new HashMap<String, ScriptEngine>();
     private transient ScheduledFuture<?> idleTask = null;
-    private transient String secondPassword, salt2; // To be used only on login
     private final transient Lock mutex = new ReentrantLock(true);
     private final transient Lock npc_mutex = new ReentrantLock();
     private final static Lock login_mutex = new ReentrantLock(true);
@@ -1021,11 +1019,13 @@ public class MapleClient implements Serializable {
         this.gender = gender;
     }
 
-    public final String getSecondPassword() {
-        return secondPassword;
+    public final String getSecondPassword()
+    {
+        return this.secondPassword;
     }
 
-    public final void setSecondPassword(final String secondPassword) {
+    public final void setSecondPassword(final String secondPassword)
+    {
         this.secondPassword = secondPassword;
     }
 

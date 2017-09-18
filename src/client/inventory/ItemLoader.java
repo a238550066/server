@@ -45,7 +45,7 @@ public enum ItemLoader {
     CASHSHOP_CYGNUS("csitems", "csequipment", 3, "accountid"),
     CASHSHOP_ARAN("csitems", "csequipment", 4, "accountid"),
     HIRED_MERCHANT("hiredmerchitems", "hiredmerchequipment", 5, "packageid", "accountid", "characterid"),
-	HIRED_FISHING("hiredfishingitems", "hiredfishingequipment", 12, "packageid", "accountid", "characterid"),
+    HIRED_FISHING("hiredfishingitems", "hiredfishingequipment", 12, "packageid", "accountid", "characterid"),
     DUEY("dueyitems", "dueyequipment", 6, "packageid"),
     CASHSHOP_EVAN("csitems", "csequipment", 7, "accountid"),
     MTS("mtsitems", "mtsequipment", 8, "packageid"),
@@ -174,30 +174,9 @@ public enum ItemLoader {
         return items;
     }
 
-    public void saveItems(List<Pair<IItem, MapleInventoryType>> items, Integer... id) throws SQLException {
-        Connection con = DatabaseConnection.getConnection();
-        /*try {
-
-         con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-         con.setAutoCommit(false);*/
-        saveItems(items, con, id);
-        /*	con.commit();
-         } catch (Exception e) {
-         e.printStackTrace();
-         System.err.println("[charsave] Error saving inventory" + e);
-         try {
-         con.rollback();
-         } catch (SQLException ex) {
-         System.err.println("[charsave] Error Rolling Back inventory" + e);
-         }
-         } finally {
-         try {
-         con.setAutoCommit(true);
-         con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-         } catch (SQLException e) {
-         System.err.println("[charsave] Error going back to autocommit mode inventory" + e);
-         }
-         }*/
+    public void saveItems(List<Pair<IItem, MapleInventoryType>> items, Integer... id) throws SQLException
+    {
+        saveItems(items, DatabaseConnection.getConnection(), id);
     }
 
     public void saveItems(List<Pair<IItem, MapleInventoryType>> items, final Connection con, Integer... id) throws SQLException {
