@@ -20,6 +20,7 @@ import sql file
 
 ```sh
 mysql -u root <database name> < sql/maplestory.sql
+mysql -u root <database name> < sql/20_duey_packages.sql
 mysql -u root <database name> < sql/50_drop_data.sql
 mysql -u root <database name> < sql/53_drop_data_global.sql
 ```
@@ -39,7 +40,7 @@ vim config.ini
 start server
 
 ```sh
-./lanuch.sh
+./launch.sh
 ```
 
 ## License
