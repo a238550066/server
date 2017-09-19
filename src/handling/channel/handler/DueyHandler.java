@@ -32,24 +32,37 @@ import database.DatabaseConnection;
 import server.MapleDueyActions;
 import server.MapleInventoryManipulator;
 import server.MapleItemInformationProvider;
+import tools.DateTimeUtil;
 import tools.MaplePacketCreator;
 import tools.data.input.SeekableLittleEndianAccessor;
 
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class DueyHandler
 {
+    private static final byte
+        INCORRECT_SECOND_PASSWORD = 9,
+        RETRIEVE_PACKAGES = 10,
+        MESO_NOT_ENOUGH = 12,
+        INVALID_REQUEST = 13,
+        INVALID_CHARACTER_NAME = 14,
+        SAME_ACCOUNT = 15,
+        BOX_ALREADY_FULL = 16,
+        TARGET_CANT_RECEIVE = 17,
+        SUCCESSFUL_DELIVER = 19;
+
+    private static final int quickDeliveryTicket = 5330000;
+    private static boolean isQuickDelivery = false;
+
     /*
      * 9：第二組密碼錯誤
      * 12：楓幣不足！
      * 13：此為不正確的要求！
      * 14：請重新確認收件人的名稱！
      * 15：無法送件給同一帳號內的角色！
-     * 16：收件人的宅配保管箱已滿！
-     * 17：該角色無法收取宅配！
+     * 16：宅配保管箱已滿！
+     * 17：角色無法收取宅配！
      * 18：對方宅配保管箱內，有數量限制的道具！
      */
     public static void operate(final SeekableLittleEndianAccessor slea, final MapleClient c)
@@ -60,14 +73,14 @@ public class DueyHandler
             case 1: // 開啟宅配人員對話
                 final String password = slea.readMapleAsciiString();
 
-                if (c.getSecondPassword() == null) {
+                if (c.getSecondPassword() == null) { // 第二組密碼預設只在登入階段保留，因此需重新載入
                     c.reloadSecondPassword();
                 }
 
-                if (!c.checkSecondPassword(password)) {
-                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 9, null));
-                } else {
-                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 10, retrievePackages(c.getPlayer())));
+                if (!c.checkSecondPassword(password)) { // 驗證第二組密碼
+                    c.getSession().write(MaplePacketCreator.sendDuey(INCORRECT_SECOND_PASSWORD, null));
+                } else { // 驗證成功，讀取保管箱物品
+                    c.getSession().write(MaplePacketCreator.sendDuey(RETRIEVE_PACKAGES, retrievePackages(c.getPlayer())));
                 }
 
                 break;
@@ -81,67 +94,88 @@ public class DueyHandler
                 final short amount = slea.readShort();
                 final int mesos = slea.readInt();
                 final String recipient = slea.readMapleAsciiString();
-                boolean quickDelivery = slea.readByte() > 0;
+                isQuickDelivery = slea.readByte() > 0;
+                final String message = isQuickDelivery ? slea.readMapleAsciiString() : null;
 
-                final int finalCost = mesos + GameConstants.getTaxAmount(mesos) + (quickDelivery ? 0 : 5000);
+                final int cost = mesos + GameConstants.getTaxAmount(mesos) + (isQuickDelivery ? 0 : 5000);
+                final int recipientID = MapleCharacterUtil.getIdByName(recipient);
 
-                if (mesos < 0 || mesos > 100000000 || c.getPlayer().getMeso() < finalCost) { // 楓幣不足
-                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 12, null));
-                } else {
-                    final int accId = MapleCharacterUtil.getIdByName(recipient);
+                // 檢查是否擁有快遞使用券
+                if (isQuickDelivery && !c.getPlayer().haveItem(quickDeliveryTicket, 1, false, true)) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(INVALID_REQUEST, null));
+                    return;
+                }
 
-                    if (accId == -1) { // 收件人不存在
-                        c.getSession().write(MaplePacketCreator.sendDuey((byte) 14, null));
-                    } else if (accId == c.getAccID()) { // 收件人為同一帳號內的角色
-                        c.getSession().write(MaplePacketCreator.sendDuey((byte) 15, null));
+                // 檢查楓幣是否足夠
+                if (mesos < 0 || mesos > 100000000 || c.getPlayer().getMeso() < cost) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(MESO_NOT_ENOUGH, null));
+                    return;
+                }
+
+                // 檢查收件人是否存在
+                if (recipientID == -1) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(INVALID_CHARACTER_NAME, null));
+                    return;
+                }
+
+                // 檢查收件人是否為同一帳號
+                if (recipientID == c.getAccID()) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(SAME_ACCOUNT, null));
+                    return;
+                }
+
+                if (inventId == 0) { // 僅運送楓幣
+                    if (!addMesoToDB(mesos, c.getPlayer().getName(), recipientID, message)) { // 運送失敗
+                        c.getSession().write(MaplePacketCreator.sendDuey(TARGET_CANT_RECEIVE, null));
                     } else {
-                        if (inventId == 0) { // 運送楓幣
-                            if (!addMesoToDB(mesos, c.getPlayer().getName(), accId)) { // 運送失敗
-                                c.getSession().write(MaplePacketCreator.sendDuey((byte) 17, null));
-                            } else {
-                                c.getPlayer().gainMeso(-finalCost, false);
-                                c.getSession().write(MaplePacketCreator.sendDuey((byte) 19, null));
-                            }
-                        } else { // 運送物品
-                            final MapleInventoryType inv = MapleInventoryType.getByType(inventId);
-                            final IItem item = c.getPlayer().getInventory(inv).getItem((byte) itemPos);
-
-                            if (item == null) { // 物品不存在
-                                c.getSession().write(MaplePacketCreator.sendDuey((byte) 13, null));
-                                return;
-                            }
-
-                            final byte flag = item.getFlag();
-
-                            if (ItemFlag.UNTRADEABLE.check(flag) || ItemFlag.LOCK.check(flag)) {
-                                c.getSession().write(MaplePacketCreator.enableActions());
-                                return;
-                            }
-
-                            if (c.getPlayer().getItemQuantity(item.getItemId(), false) < amount) { // 物品數量不正確
-                                c.getSession().write(MaplePacketCreator.sendDuey((byte) 13, null));
-                            } else {
-                                final MapleItemInformationProvider ii = MapleItemInformationProvider.getInstance();
-
-                                if (ii.isDropRestricted(item.getItemId()) || ii.isAccountShared(item.getItemId())) { // 不可運送的物品
-                                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 13, null));
-                                } else {
-                                    if (!addItemToDB(item, amount, mesos, c.getPlayer().getName(), accId)) { // 運送失敗
-                                        c.getSession().write(MaplePacketCreator.sendDuey((byte) 17, null));
-                                    } else {
-                                        if (GameConstants.isThrowingStar(item.getItemId()) || GameConstants.isBullet(item.getItemId())) {
-                                            MapleInventoryManipulator.removeFromSlot(c, inv, (byte) itemPos, item.getQuantity(), true);
-                                        } else {
-                                            MapleInventoryManipulator.removeFromSlot(c, inv, (byte) itemPos, amount, true, false);
-                                        }
-
-                                        c.getPlayer().gainMeso(-finalCost, false);
-                                        c.getSession().write(MaplePacketCreator.sendDuey((byte) 19, null));
-                                    }
-                                }
-                            }
-                        }
+                        consumeQuickDeliveryTicket(c);
+                        c.getPlayer().gainMeso(-cost, false);
+                        c.getSession().write(MaplePacketCreator.sendDuey(SUCCESSFUL_DELIVER, null));
                     }
+
+                    return;
+                }
+
+                // 運送物品
+                final MapleInventoryType inv = MapleInventoryType.getByType(inventId);
+                final IItem item = c.getPlayer().getInventory(inv).getItem((byte) itemPos);
+
+                if (item == null) { // 物品不存在
+                    c.getSession().write(MaplePacketCreator.sendDuey(INVALID_REQUEST, null));
+                    return;
+                }
+
+                final byte flag = item.getFlag();
+
+                // 檢查是否為不可交易或上鎖的物品
+                if (ItemFlag.UNTRADEABLE.check(flag) || ItemFlag.LOCK.check(flag)) {
+                    c.getSession().write(MaplePacketCreator.enableActions());
+                    return;
+                }
+
+                // 檢查物品數量是否足夠
+                if (c.getPlayer().getItemQuantity(item.getItemId(), false) < amount) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(INVALID_REQUEST, null));
+                    return;
+                }
+
+                final MapleItemInformationProvider ii = MapleItemInformationProvider.getInstance();
+
+                // 檢查是否為不可丟棄或僅限帳號分享的物品
+                if (ii.isDropRestricted(item.getItemId()) || ii.isAccountShared(item.getItemId())) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(INVALID_REQUEST, null));
+                    return;
+                }
+
+                if (!addItemToDB(item, amount, mesos, c.getPlayer().getName(), recipientID, message)) { // 運送失敗
+                    c.getSession().write(MaplePacketCreator.sendDuey(TARGET_CANT_RECEIVE, null));
+                } else {
+                    final short quantity = GameConstants.isRechargable(item.getItemId()) ? item.getQuantity() : amount;
+
+                    MapleInventoryManipulator.removeFromSlot(c, inv, (byte) itemPos, quantity, true);
+                    consumeQuickDeliveryTicket(c);
+                    c.getPlayer().gainMeso(-cost, false);
+                    c.getSession().write(MaplePacketCreator.sendDuey(SUCCESSFUL_DELIVER, null));
                 }
 
                 break;
@@ -151,33 +185,40 @@ public class DueyHandler
                 }
 
                 final int id = slea.readInt();
-                final MapleDueyActions dp = retrievePackage(id, c.getPlayer().getId());
+                final MapleDueyActions pack = retrievePackage(id, c.getPlayer().getId());
 
-                if (dp == null) {
+                // 檢查包裹是否存在
+                if (pack == null) {
                     return;
-                } else if (dp.getItem() != null && !MapleInventoryManipulator.checkSpace(c, dp.getItem().getItemId(), dp.getItem().getQuantity(), dp.getItem().getOwner())) {
-                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 16, null)); // Not enough Space
+                }
+
+                // 如有物品，檢查是否有空間收取
+                if (pack.getItem() != null && !MapleInventoryManipulator.checkSpace(c, pack.getItem().getItemId(), pack.getItem().getQuantity(), pack.getItem().getOwner())) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(BOX_ALREADY_FULL, null));
                     return;
-                } else if (dp.getMesos() < 0 || (dp.getMesos() + c.getPlayer().getMeso()) < 0) {
-                    c.getSession().write(MaplePacketCreator.sendDuey((byte) 17, null)); // Unsuccessfull
+                }
+
+                // 楓幣數量錯誤或加總後超過整數上限
+                if (pack.getMesos() < 0 || (pack.getMesos() + c.getPlayer().getMeso()) < 0) {
+                    c.getSession().write(MaplePacketCreator.sendDuey(TARGET_CANT_RECEIVE, null));
                     return;
                 }
 
                 removePackage(id, c.getPlayer().getId());
 
-                if (dp.getItem() != null) {
-                    MapleInventoryManipulator.addFromDrop(c, dp.getItem(), false);
+                if (pack.getItem() != null) {
+                    MapleInventoryManipulator.addFromDrop(c, pack.getItem(), false);
                 }
 
-                if (dp.getMesos() != 0) {
-                    c.getPlayer().gainMeso(dp.getMesos(), false);
+                if (pack.getMesos() > 0) {
+                    c.getPlayer().gainMeso(pack.getMesos(), false);
                 }
 
                 c.getSession().write(MaplePacketCreator.removeItemFromDuey(false, id));
 
                 break;
             }
-            case 6: // Remove package
+            case 6: // 刪除包裹
                 if (c.getPlayer().getConversation() != 2) {
                     return;
                 }
@@ -189,12 +230,12 @@ public class DueyHandler
                 c.getSession().write(MaplePacketCreator.removeItemFromDuey(true, id));
 
                 break;
-            case 8: // Close Duey
+            case 8: // 關閉對話
                 c.getPlayer().setConversation(0);
 
                 break;
             default:
-                System.out.println("Unhandled Duey operation : " + slea.toString());
+                System.err.println("Unhandled Duey operation : " + slea.toString());
 
                 break;
         }
@@ -203,23 +244,24 @@ public class DueyHandler
     /**
      * 儲存宅配楓幣資訊到資料庫
      */
-    private static boolean addMesoToDB(final int mesos, final String senderName, final int recipientID)
+    private static boolean addMesoToDB(final int mesos, final String senderName, final int recipientID, final String message)
     {
         try {
             final Connection con = DatabaseConnection.getConnection();
-            final PreparedStatement ps = con.prepareStatement("INSERT INTO `duey_packages` (`receiver_id`, `sender_name`, `mesos`, `expired_at`) VALUES (?, ?, ?, ?)");
+            final PreparedStatement ps = con.prepareStatement("INSERT INTO `duey_packages` (`receiver_id`, `sender_name`, `mesos`, `message`, `expired_at`) VALUES (?, ?, ?, ?, ?)");
 
             ps.setInt(1, recipientID);
             ps.setString(2, senderName);
             ps.setInt(3, mesos);
-            ps.setString(4, expiredAtDateTimeString());
+            ps.setString(4, message);
+            ps.setString(5, DateTimeUtil.dueyExpiredAt(isQuickDelivery));
 
             ps.executeUpdate();
             ps.close();
 
             return true;
-        } catch (SQLException se) {
-            se.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -227,21 +269,22 @@ public class DueyHandler
     /**
      * 儲存宅配物品資訊到資料庫
      */
-    private static boolean addItemToDB(final IItem item, final int quantity, final int mesos, final String senderName, final int recipientID)
+    private static boolean addItemToDB(final IItem item, final int quantity, final int mesos, final String senderName, final int recipientID, final String message)
     {
         try {
             final Connection con = DatabaseConnection.getConnection();
-            final PreparedStatement ps = con.prepareStatement("INSERT INTO `duey_packages` (`receiver_id`, `sender_name`, `mesos`, `type`, `expired_at`) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            final PreparedStatement ps = con.prepareStatement("INSERT INTO `duey_packages` (`receiver_id`, `sender_name`, `mesos`, `message`, `type`, `expired_at`) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 
             ps.setInt(1, recipientID);
             ps.setString(2, senderName);
             ps.setInt(3, mesos);
-            ps.setInt(4, item.getType());
-            ps.setString(5, expiredAtDateTimeString());
+            ps.setString(4, message);
+            ps.setInt(5, item.getType());
+            ps.setString(6, DateTimeUtil.dueyExpiredAt(isQuickDelivery));
 
             ps.executeUpdate();
 
-            ResultSet rs = ps.getGeneratedKeys();
+            final ResultSet rs = ps.getGeneratedKeys();
 
             if (rs.next()) {
                 saveItem(item, quantity, rs.getInt(1));
@@ -251,10 +294,29 @@ public class DueyHandler
             ps.close();
 
             return true;
-        } catch (SQLException se) {
-            se.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * 消耗快遞使用券
+     */
+    private static void consumeQuickDeliveryTicket(MapleClient c)
+    {
+        if (!isQuickDelivery) {
+            return;
+        }
+
+        MapleInventoryManipulator.removeById(
+            c,
+            MapleInventoryType.CASH,
+            quickDeliveryTicket,
+            1,
+            true,
+            false
+        );
     }
 
     /**
@@ -274,14 +336,15 @@ public class DueyHandler
             while (rs.next()) {
                 final int id = rs.getInt("id");
 
-                if (currentDateTime().isAfter(LocalDateTime.parse(rs.getString("expired_at"), dateTimeFormat()))) {
+                if (DateTimeUtil.isAfter(rs.getString("expired_at"))) {
                     removePackage(id, chr.getId());
                 } else {
                     final MapleDueyActions pack = getItemByPackageId(id);
 
                     pack.setSender(rs.getString("sender_name"));
                     pack.setMesos(rs.getInt("mesos"));
-                    pack.setSentAt(dateTimeToTimestamp(rs.getString("expired_at")));
+                    pack.setMessage(rs.getString("message"));
+                    pack.setSentAt(DateTimeUtil.toTimestamp(rs.getString("expired_at")));
 
                     packages.add(pack);
                 }
@@ -291,8 +354,8 @@ public class DueyHandler
             ps.close();
 
             return packages;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
             return null;
         }
     }
@@ -314,14 +377,15 @@ public class DueyHandler
             MapleDueyActions pack = null;
 
             if (rs.next()) {
-                if (currentDateTime().isAfter(LocalDateTime.parse(rs.getString("expired_at"), dateTimeFormat()))) {
+                if (DateTimeUtil.isAfter(rs.getString("expired_at"))) {
                     removePackage(id, charId);
                 } else {
                     pack = getItemByPackageId(id);
 
                     pack.setSender(rs.getString("sender_name"));
                     pack.setMesos(rs.getInt("mesos"));
-                    pack.setSentAt(dateTimeToTimestamp(rs.getString("expired_at")));
+                    pack.setMessage(rs.getString("message"));
+                    pack.setSentAt(DateTimeUtil.toTimestamp(rs.getString("expired_at")));
                 }
             }
 
@@ -329,8 +393,8 @@ public class DueyHandler
             ps.close();
 
             return pack;
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
             return null;
         }
     }
@@ -338,14 +402,11 @@ public class DueyHandler
     private static MapleDueyActions getItemByPackageId(final int id)
     {
         try {
-            IItem item = loadItem(id);
-
-            return new MapleDueyActions(id, item);
-        } catch (Exception se) {
-            se.printStackTrace();
+            return new MapleDueyActions(id, loadItem(id));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new MapleDueyActions(id);
         }
-
-        return new MapleDueyActions(id);
     }
 
     /**
@@ -357,32 +418,20 @@ public class DueyHandler
             final Connection con = DatabaseConnection.getConnection();
             final PreparedStatement ps = con.prepareStatement("UPDATE `duey_packages` SET `received_at` = ? WHERE `id` = ? AND `receiver_id` = ?");
 
-            ps.setString(1, currentDateTimeString());
+            ps.setString(1, DateTimeUtil.now());
             ps.setInt(2, id);
             ps.setInt(3, charId);
 
             ps.executeUpdate();
             ps.close();
-        } catch (SQLException se) {
-            se.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    public static void reciveMsg(final int recipientId)
-    {
-        try {
-            final Connection con = DatabaseConnection.getConnection();
-            final PreparedStatement ps = con.prepareStatement("UPDATE `duey_packages` SET `checked` = 0 where `received_at` = ?");
-
-            ps.setInt(1, recipientId);
-
-            ps.executeUpdate();
-            ps.close();
-        } catch (SQLException se) {
-            se.printStackTrace();
-        }
-    }
-
+    /**
+     * @todo fix this
+     */
     private static IItem loadItem(int id) throws SQLException
     {
         final Connection con = DatabaseConnection.getConnection();
@@ -397,7 +446,7 @@ public class DueyHandler
         if (rs.next()) {
             MapleInventoryType mit = MapleInventoryType.getByType(rs.getByte("inventorytype"));
 
-            if (mit.equals(MapleInventoryType.EQUIP) || mit.equals(MapleInventoryType.EQUIPPED)) {
+            if (mit.equals(MapleInventoryType.EQUIP)) {
                 Equip equip = new Equip(rs.getInt("itemid"), rs.getShort("position"), rs.getInt("uniqueid"), rs.getByte("flag"));
 
                 equip.setQuantity((short) 1);
@@ -473,6 +522,9 @@ public class DueyHandler
         return item;
     }
 
+    /**
+     * @todo fix this
+     */
     private static void saveItem(final IItem item, final int quantity, final int packageId) throws SQLException
     {
         final Connection con = DatabaseConnection.getConnection();
@@ -546,30 +598,5 @@ public class DueyHandler
         }
 
         ps.close();
-    }
-
-    private static LocalDateTime currentDateTime()
-    {
-        return LocalDateTime.now();
-    }
-
-    private static String currentDateTimeString()
-    {
-        return LocalDateTime.now().format(dateTimeFormat());
-    }
-
-    private static String expiredAtDateTimeString()
-    {
-        return LocalDateTime.now().plusDays(15).format(dateTimeFormat());
-    }
-
-    private static long dateTimeToTimestamp(final String datetime)
-    {
-        return java.sql.Timestamp.valueOf(datetime).getTime();
-    }
-
-    private static DateTimeFormatter dateTimeFormat()
-    {
-        return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     }
 }

@@ -22,6 +22,7 @@ package tools;
 
 import java.awt.Point;
 import java.net.InetAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -4015,12 +4016,12 @@ public class MaplePacketCreator {
         return mplew.getPacket();
     }
 
-    public static MaplePacket removeItemFromDuey(boolean remove, int Package) {
-        MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
+    public static MaplePacket removeItemFromDuey(boolean remove, int packageId) {
+        final MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
 
         mplew.writeShort(SendPacketOpcode.DUEY.getValue());
         mplew.write(0x18);
-        mplew.writeInt(Package);
+        mplew.writeInt(packageId);
         mplew.write(remove ? 3 : 4);
 
         return mplew.getPacket();
@@ -4047,7 +4048,15 @@ public class MaplePacketCreator {
                     mplew.writeAsciiString(dp.getSender(), 15);
                     mplew.writeInt(dp.getMesos());
                     mplew.writeLong(KoreanDateUtil.getFileTimestamp(dp.getSentAt(), false));
-                    mplew.writeZeroBytes(205);
+                    mplew.writeZeroBytes(2);
+
+                    if (dp.getMessage() == null) {
+                        mplew.writeZeroBytes(203);
+                    } else {
+                        mplew.writeMapleAsciiString(dp.getMessage());
+                        // minus 2 bytes is for MapleAsciiString prefix `short` length
+                        mplew.writeZeroBytes(203 - 2 - dp.getMessage().getBytes(Charset.forName("BIG5")).length);
+                    }
 
                     if (dp.getItem() != null) {
                         mplew.write(1);
@@ -4055,7 +4064,6 @@ public class MaplePacketCreator {
                     } else {
                         mplew.write(0);
                     }
-                    //System.out.println("Package has been sent in packet: " + dp.getPackageId());
                 }
                 mplew.write(0);
                 break;

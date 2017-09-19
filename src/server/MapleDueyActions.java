@@ -8,6 +8,7 @@ public class MapleDueyActions
     private String sender = null;
     private IItem item = null;
     private int mesos = 0;
+    private String message = null;
     private int quantity = 1;
     private long sentAt;
 
@@ -54,6 +55,16 @@ public class MapleDueyActions
     public void setMesos(final int set)
     {
         this.mesos = set;
+    }
+
+    public final String getMessage()
+    {
+        return this.message;
+    }
+
+    public void setMessage(final String set)
+    {
+        this.message = set;
     }
 
     public final int getQuantity()
