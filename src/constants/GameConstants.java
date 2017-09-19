@@ -273,10 +273,12 @@ public class GameConstants
         return false;
     }
 
+    // 鏢
     public static boolean isThrowingStar(final int itemId) {
         return itemId / 10000 == 207;
     }
 
+    // 子彈
     public static boolean isBullet(final int itemId) {
         return itemId / 10000 == 233;
     }
