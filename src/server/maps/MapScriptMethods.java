@@ -617,6 +617,9 @@ public class MapScriptMethods {
                     c.getSession().write(UIPacket.IntroLock(false));
                     c.getSession().write(MaplePacketCreator.enableActions());
                     c.getSession().write(UIPacket.MapNameDisplay(c.getPlayer().getMapId()));
+                } else {
+                    // @todo tofix
+                    break;
                 }
 
                 MedalQuest m = null;
