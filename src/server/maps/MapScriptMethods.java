@@ -31,8 +31,8 @@ import server.Randomizer;
 import server.MapleItemInformationProvider;
 import server.life.MapleLifeFactory;
 import server.life.MapleMonster;
-import server.quest.MapleQuest;
-import server.quest.MapleQuest.MedalQuest;
+import server.quests.MapleQuest;
+import server.quests.MapleQuest.MedalQuest;
 import tools.FileoutputUtil;
 import tools.MaplePacketCreator;
 import tools.packet.UIPacket;
@@ -618,7 +618,9 @@ public class MapScriptMethods {
                     c.getSession().write(MaplePacketCreator.enableActions());
                     c.getSession().write(UIPacket.MapNameDisplay(c.getPlayer().getMapId()));
                 }
+
                 MedalQuest m = null;
+
                 for (MedalQuest mq : MedalQuest.values()) {
                     for (int i : mq.maps) {
                         if (c.getPlayer().getMapId() == i) {
@@ -627,21 +629,24 @@ public class MapScriptMethods {
                         }
                     }
                 }
-                if (m != null && c.getPlayer().getLevel() >= m.level && c.getPlayer().getQuestStatus(m.questid) != 2) {
-                    if (c.getPlayer().getQuestStatus(m.lquestid) != 1) {
-                        MapleQuest.getInstance(m.lquestid).forceStart(c.getPlayer(), 0, "0");
+
+                if (m != null && c.getPlayer().getLevel() >= m.level && c.getPlayer().getQuestStatus(m.questId) != 2) {
+                    if (c.getPlayer().getQuestStatus(m.lastQuestId) != 1) {
+                        MapleQuest.getInstance(m.lastQuestId).forceStart(c.getPlayer(), 0, "0");
                     }
-                    if (c.getPlayer().getQuestStatus(m.questid) != 1) {
-                        MapleQuest.getInstance(m.questid).forceStart(c.getPlayer(), 0, null);
+
+                    if (c.getPlayer().getQuestStatus(m.questId) != 1) {
+                        MapleQuest.getInstance(m.questId).forceStart(c.getPlayer(), 0, null);
                         final StringBuilder sb = new StringBuilder("enter=");
                         for (int i = 0; i < m.maps.length; i++) {
                             sb.append("0");
                         }
-                        c.getPlayer().updateInfoQuest(m.questid - 2005, sb.toString());
-                        MapleQuest.getInstance(m.questid - 1995).forceStart(c.getPlayer(), 0, "0");
+                        c.getPlayer().updateInfoQuest(m.questId - 2005, sb.toString());
+                        MapleQuest.getInstance(m.questId - 1995).forceStart(c.getPlayer(), 0, "0");
                     }
-                    final String quest = c.getPlayer().getInfoQuest(m.questid - 2005);
-                    final MapleQuestStatus stat = c.getPlayer().getQuestNAdd(MapleQuest.getInstance(m.questid - 1995));
+
+                    final String quest = c.getPlayer().getInfoQuest(m.questId - 2005);
+                    final MapleQuestStatus stat = c.getPlayer().getQuestNAdd(MapleQuest.getInstance(m.questId - 1995));
                     if (stat.getCustomData() == null) { //just a check.
                         stat.setCustomData("0");
                     }
@@ -663,8 +668,8 @@ public class MapScriptMethods {
                     }
                     if (changedd) {
                         number++;
-                        c.getPlayer().updateInfoQuest(m.questid - 2005, sb.toString());
-                        MapleQuest.getInstance(m.questid - 1995).forceStart(c.getPlayer(), 0, String.valueOf(number));
+                        c.getPlayer().updateInfoQuest(m.questId - 2005, sb.toString());
+                        MapleQuest.getInstance(m.questId - 1995).forceStart(c.getPlayer(), 0, String.valueOf(number));
                         c.getPlayer().dropMessage(-1, "訪問 " + number + "/" + m.maps.length + " 個地區.");
                         c.getPlayer().dropMessage(-1, "稱號 " + String.valueOf(m) + " 已完成了");
                         c.getSession().write(MaplePacketCreator.showQuestMsg("稱號 " + String.valueOf(m) + " 已完成訪問 " + number + "/" + m.maps.length + " 個地區"));

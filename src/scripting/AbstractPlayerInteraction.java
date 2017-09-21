@@ -46,7 +46,7 @@ import server.maps.SavedLocationType;
 import server.maps.EventDojoAgent;
 import server.life.MapleMonster;
 import server.life.MapleLifeFactory;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import tools.MaplePacketCreator;
 import tools.packet.PetPacket;
 import tools.packet.UIPacket;

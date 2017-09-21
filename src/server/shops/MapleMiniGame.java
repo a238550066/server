@@ -29,7 +29,7 @@ import client.MapleCharacter;
 import client.MapleClient;
 import client.MapleQuestStatus;
 import constants.GameConstants;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import tools.packet.PlayerShopPacket;
 
 public class MapleMiniGame extends AbstractPlayerStore {

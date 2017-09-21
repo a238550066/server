@@ -53,6 +53,7 @@ import handling.world.family.MapleFamilyCharacter;
 import handling.world.guild.MapleGuildCharacter;
 import server.maps.MapleMap;
 import server.MapleTrade;
+import server.quests.MapleQuest;
 import server.shops.IMaplePlayerShop;
 import tools.FileoutputUtil;
 import tools.MapleAESOFB;
@@ -60,7 +61,6 @@ import tools.packet.LoginPacket;
 
 import org.apache.mina.common.IoSession;
 import server.Timer.PingTimer;
-import server.quest.MapleQuest;
 import tools.MaplePacketCreator;
 
 public class MapleClient implements Serializable {
@@ -1001,7 +1001,7 @@ public class MapleClient implements Serializable {
             MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM mountdata WHERE characterid = ?", cid);
             MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM skillmacros WHERE characterid = ?", cid);
             MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM trocklocations WHERE characterid = ?", cid);
-            MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM queststatus WHERE characterid = ?", cid);
+//            MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM `quest_status` WHERE `character_id` = ?", cid);
             MapleCharacter.deleteWhereCharacterId(con, "DELETE FROM inventoryslot WHERE characterid = ?", cid);
             return 0;
         } catch (Exception e) {

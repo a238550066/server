@@ -28,7 +28,7 @@ import java.awt.Point;
 import java.util.concurrent.ScheduledFuture;
 import server.Randomizer;
 import server.Timer.MapTimer;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.life.MapleLifeFactory;
 import tools.MaplePacketCreator;
 

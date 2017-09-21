@@ -38,7 +38,7 @@ import handling.login.LoginInformationProvider;
 import handling.login.LoginServer;
 import handling.login.LoginWorker;
 import server.MapleItemInformationProvider;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.ServerProperties;
 import tools.MaplePacketCreator;
 import tools.packet.LoginPacket;

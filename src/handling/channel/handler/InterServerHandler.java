@@ -212,6 +212,10 @@ public class InterServerHandler {
         c.getSession().write(MaplePacketCreator.getKeymap(player.getKeyLayout()));
 
         for (MapleQuestStatus status : player.getStartedQuests()) {
+            if (status.getInfo() != null) {
+                c.getSession().write(MaplePacketCreator.updateQuest(status));
+            }
+
             if (status.hasMobKills()) {
                 c.getSession().write(MaplePacketCreator.updateQuestMobKills(status));
             }

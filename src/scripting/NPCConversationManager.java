@@ -30,18 +30,13 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import client.*;
 import client.inventory.Equip;
-import client.ISkill;
 import client.inventory.IItem;
-import client.MapleCharacter;
 import constants.GameConstants;
 import client.inventory.ItemFlag;
-import client.MapleClient;
 import client.inventory.MapleInventory;
 import client.inventory.MapleInventoryType;
-import client.SkillFactory;
-import client.SkillEntry;
-import client.MapleStat;
 import server.MapleCarnivalParty;
 import server.Randomizer;
 import server.MapleInventoryManipulator;
@@ -50,7 +45,7 @@ import server.MapleSquad;
 import server.maps.MapleMap;
 import server.maps.EventDojoAgent;
 import server.maps.AramiaFireWorks;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import tools.MaplePacketCreator;
 import tools.Pair;
 import tools.packet.PlayerShopPacket;
@@ -491,7 +486,7 @@ public class NPCConversationManager extends AbstractPlayerInteraction {
     }
 
     public void forceCompleteQuest() {
-        MapleQuest.getInstance(questid).forceComplete(getPlayer(), getNpc());
+        MapleQuest.getInstance(this.questid).forceComplete(getPlayer(), getNpc());
     }
 
     public void forceCompleteQuest(final int id) {
@@ -499,11 +494,15 @@ public class NPCConversationManager extends AbstractPlayerInteraction {
     }
 
     public String getQuestCustomData(final int id) {
-        return c.getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).getCustomData();
+        return c.getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).getInfo();
     }
 
     public void setQuestCustomData(final int id, String customData) {
-        getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).setCustomData(customData);
+        final MapleQuestStatus status = getPlayer().getQuestNAdd(MapleQuest.getInstance(id));
+
+        status.setInfo(customData);
+
+        c.getSession().write(MaplePacketCreator.updateQuest(status));
     }
 
     public int getMeso() {

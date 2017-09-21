@@ -38,7 +38,7 @@ import server.MapleShop;
 import server.MapleInventoryManipulator;
 import server.MapleStorage;
 import server.life.MapleNPC;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import scripting.NPCScriptManager;
 import scripting.NPCConversationManager;
 import server.MapleItemInformationProvider;
@@ -148,7 +148,7 @@ public class NPCHandler {
             case 0: { // Restore lost item
                 chr.updateTick(slea.readInt());
                 final int itemid = slea.readInt();
-                MapleQuest.getInstance(quest).RestoreLostItem(chr, itemid);
+                MapleQuest.getInstance(quest).restoreLostItem(chr, itemid);
                 break;
             }
             case 1: { // Start Quest

@@ -37,43 +37,51 @@ import provider.WzXML.MapleDataType;
 import tools.Pair;
 import tools.StringUtil;
 
-public class MapleLifeFactory {
-
-    private static final MapleDataProvider data = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Mob.wz"));
-    private static final MapleDataProvider stringDataWZ = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/String.wz"));
-    private static final MapleDataProvider etcDataWZ = MapleDataProviderFactory.getDataProvider(new File(System.getProperty("net.sf.odinms.wzpath") + "/Etc.wz"));
+public class MapleLifeFactory
+{
+    private static final MapleDataProvider data = MapleDataProviderFactory.getDataProvider(new File("wz/Mob.wz"));
+    private static final MapleDataProvider stringDataWZ = MapleDataProviderFactory.getDataProvider(new File("wz/String.wz"));
+    private static final MapleDataProvider etcDataWZ = MapleDataProviderFactory.getDataProvider(new File("wz/Etc.wz"));
     private static final MapleData mobStringData = stringDataWZ.getData("Mob.img");
     private static final MapleData npcStringData = stringDataWZ.getData("Npc.img");
-    private static final MapleData npclocData = etcDataWZ.getData("NpcLocation.img");
-    private static Map<Integer, String> npcNames = new HashMap<Integer, String>();
-    private static Map<Integer, MapleMonsterStats> monsterStats = new HashMap<Integer, MapleMonsterStats>();
-    private static Map<Integer, Integer> NPCLoc = new HashMap<Integer, Integer>();
-    private static Map<Integer, List<Integer>> questCount = new HashMap<Integer, List<Integer>>();
+    private static final MapleData npcLocData = etcDataWZ.getData("NpcLocation.img");
+    private static Map<Integer, String> npcNames = new HashMap<>();
+    private static Map<Integer, MapleMonsterStats> monsterStats = new HashMap<>();
+    private static Map<Integer, Integer> npcLoc = new HashMap<>();
+    private static Map<Integer, List<Integer>> questCount = new HashMap<>();
 
-    public static AbstractLoadedMapleLife getLife(int id, String type) {
+    public static AbstractLoadedMapleLife getLife(int id, String type)
+    {
         if (type.equalsIgnoreCase("n")) {
             return getNPC(id);
         } else if (type.equalsIgnoreCase("m")) {
             return getMonster(id);
-        } else {
-            System.err.println("Unknown Life type: " + type + "");
-            return null;
         }
+
+        System.err.println("Unknown Life type: " + type);
+
+        return null;
     }
 
-    public static int getNPCLocation(int npcid) {
-        if (NPCLoc.containsKey(npcid)) {
-            return NPCLoc.get(npcid);
+    public static int getNPCLocation(int npcId)
+    {
+        if (npcLoc.containsKey(npcId)) {
+            return npcLoc.get(npcId);
         }
-        final int map = MapleDataTool.getIntConvert(Integer.toString(npcid) + "/0", npclocData, -1);
-        NPCLoc.put(npcid, map);
+
+        final int map = MapleDataTool.getIntConvert(Integer.toString(npcId) + "/0", npcLocData, -1);
+
+        npcLoc.put(npcId, map);
+
         return map;
     }
 
-    public static final void loadQuestCounts() {
+    public static void loadQuestCounts()
+    {
         if (questCount.size() > 0) {
             return;
         }
+
         for (MapleDataDirectoryEntry mapz : data.getRoot().getSubdirectories()) {
             if (mapz.getName().equals("QuestCountGroup")) {
                 for (MapleDataFileEntry entry : mapz.getFiles()) {
@@ -93,19 +101,24 @@ public class MapleLifeFactory {
         }
     }
 
-    public static final List<Integer> getQuestCount(final int id) {
+    public static List<Integer> getQuestCount(final int id)
+    {
         return questCount.get(id);
     }
 
-    public static MapleMonster getMonster(int mid) {
-        MapleMonsterStats stats = monsterStats.get(Integer.valueOf(mid));
+    public static MapleMonster getMonster(int modId)
+    {
+        MapleMonsterStats stats = monsterStats.get(modId);
 
         if (stats == null) {
-            MapleData monsterData = data.getData(StringUtil.getLeftPaddedStr(Integer.toString(mid) + ".img", '0', 11));
+            MapleData monsterData = data.getData(StringUtil.getLeftPaddedStr(Integer.toString(modId) + ".img", '0', 11));
+
             if (monsterData == null) {
                 return null;
             }
-            MapleData monsterInfoData = monsterData.getChildByPath("info");
+
+            final MapleData monsterInfoData = monsterData.getChildByPath("info");
+
             stats = new MapleMonsterStats();
 
             stats.setHp(MapleDataTool.getIntConvert("maxHP", monsterInfoData));
@@ -116,11 +129,11 @@ public class MapleLifeFactory {
             stats.setrareItemDropLevel((byte) MapleDataTool.getIntConvert("rareItemDropLevel", monsterInfoData, 0));
             stats.setFixedDamage(MapleDataTool.getIntConvert("fixedDamage", monsterInfoData, -1));
             stats.setOnlyNormalAttack(MapleDataTool.getIntConvert("onlyNormalAttack", monsterInfoData, 0) > 0);
-            stats.setBoss(MapleDataTool.getIntConvert("boss", monsterInfoData, 0) > 0 || mid == 8810018 || mid == 9410066 || (mid >= 8810118 && mid <= 8810122));
+            stats.setBoss(MapleDataTool.getIntConvert("boss", monsterInfoData, 0) > 0 || modId == 8810018 || modId == 9410066 || (modId >= 8810118 && modId <= 8810122));
             stats.setExplosiveReward(MapleDataTool.getIntConvert("explosiveReward", monsterInfoData, 0) > 0);
             stats.setFfaLoot(MapleDataTool.getIntConvert("publicReward", monsterInfoData, 0) > 0);
             stats.setUndead(MapleDataTool.getIntConvert("undead", monsterInfoData, 0) > 0);
-            stats.setName(MapleDataTool.getString(mid + "/name", mobStringData, "MISSINGNO"));
+            stats.setName(MapleDataTool.getString(modId + "/name", mobStringData, "MISSINGNO"));
             stats.setBuffToGive(MapleDataTool.getIntConvert("buff", monsterInfoData, -1));
             stats.setFriendly(MapleDataTool.getIntConvert("damagedByMob", monsterInfoData, 0) > 0);
             stats.setExplosiveReward(MapleDataTool.getIntConvert("explosiveReward", monsterInfoData, 0) > 0);
@@ -148,7 +161,7 @@ public class MapleLifeFactory {
                     stats.setFirstAttack(MapleDataTool.getInt(firstAttackData) > 0);
                 }
             }
-            if (stats.isBoss() || isDmgSponge(mid)) {
+            if (stats.isBoss() || isDmgSponge(modId)) {
                 if (hideHP || monsterInfoData.getChildByPath("hpTagColor") == null || monsterInfoData.getChildByPath("hpTagBgcolor") == null) {
                     stats.setTagColor(0);
                     stats.setTagBgColor(0);
@@ -209,16 +222,17 @@ public class MapleLifeFactory {
                 hpdisplaytype = 0;
             } else if (stats.isFriendly()) {
                 hpdisplaytype = 1;
-            } else if (mid >= 9300184 && mid <= 9300215) { // Mulung TC mobs
+            } else if (modId >= 9300184 && modId <= 9300215) { // Mulung TC mobs
                 hpdisplaytype = 2;
-            } else if (!stats.isBoss() || mid == 9410066) { // Not boss and dong dong chiang
+            } else if (!stats.isBoss() || modId == 9410066) { // Not boss and dong dong chiang
                 hpdisplaytype = 3;
             }
             stats.setHPDisplayType(hpdisplaytype);
 
-            monsterStats.put(Integer.valueOf(mid), stats);
+            monsterStats.put(Integer.valueOf(modId), stats);
         }
-        return new MapleMonster(mid, stats);
+
+        return new MapleMonster(modId, stats);
     }
 
     public static final void decodeElementalString(MapleMonsterStats stats, String elemAttr) {

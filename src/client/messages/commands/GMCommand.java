@@ -78,7 +78,7 @@ import server.maps.MapleMapObjectType;
 import server.maps.MapleReactor;
 import server.maps.MapleReactorFactory;
 import server.maps.MapleReactorStats;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import tools.ArrayMap;
 import tools.CPUSampler;
 import tools.MaplePacketCreator;

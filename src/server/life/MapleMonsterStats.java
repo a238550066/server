@@ -20,15 +20,12 @@
  */
 package server.life;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import tools.Pair;
 
-public class MapleMonsterStats {
-
+public class MapleMonsterStats
+{
     private byte cp, selfDestruction_action, tagColor, tagBgColor, rareItemDropLevel, HPDisplayType;
     private short level, PhysicalDefense, MagicDefense, eva;
     private long hp;

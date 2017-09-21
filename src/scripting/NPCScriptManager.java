@@ -27,7 +27,7 @@ import javax.script.ScriptEngine;
 import client.MapleClient;
 import java.util.WeakHashMap;
 import java.util.concurrent.locks.Lock;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import tools.FileoutputUtil;
 
 public class NPCScriptManager extends AbstractScriptManager {

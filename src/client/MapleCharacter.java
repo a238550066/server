@@ -23,7 +23,6 @@ package client;
 import constants.GameConstants;
 import client.inventory.MapleInventoryType;
 import client.inventory.MapleInventory;
-import client.inventory.PetDataFactory;
 import client.inventory.Item;
 import client.inventory.ItemLoader;
 import client.inventory.MapleInventoryIdentifier;
@@ -34,11 +33,7 @@ import client.inventory.MaplePet;
 import client.inventory.ItemFlag;
 import client.inventory.MapleRing;
 import java.awt.Point;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Deque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,10 +76,10 @@ import java.lang.ref.WeakReference;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import tools.MockIOSession;
+
+import tools.*;
 import scripting.EventInstanceManager;
 import scripting.NPCScriptManager;
-import server.MapleAchievements;
 import server.MaplePortal;
 import server.MapleShop;
 import server.MapleStatEffect;
@@ -104,12 +99,10 @@ import server.maps.MapleMapObjectType;
 import server.maps.MapleSummon;
 import server.maps.FieldLimitType;
 import server.maps.SavedLocationType;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.shops.IMaplePlayerShop;
 import server.shops.MaplePlayerShopItem;
 import server.CashShop;
-import tools.MaplePacketCreator;
-import tools.Pair;
 import tools.packet.MTSCSPacket;
 import tools.packet.MobPacket;
 import tools.packet.PetPacket;
@@ -127,8 +120,6 @@ import server.maps.MapleDragon;
 import server.maps.MapleFoothold;
 import server.movement.LifeMovementFragment;
 import server.shops.HiredFishing;
-import tools.ConcurrentEnumMap;
-import tools.FileoutputUtil;
 import tools.packet.PlayerShopPacket;
 
 public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Serializable {
@@ -209,7 +200,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         for (MapleInventoryType type : MapleInventoryType.values()) {
             inventory[type.ordinal()] = new MapleInventory(type);
         }
-        quests = new LinkedHashMap<MapleQuest, MapleQuestStatus>(); // Stupid erev quest.
+        this.quests = new LinkedHashMap<MapleQuest, MapleQuestStatus>(); // Stupid erev quest.
         stats = new PlayerStats(this);
         for (int i = 0; i < remainingSp.length; i++) {
             remainingSp[i] = 0;
@@ -398,24 +389,24 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             }
         }
 
-        MapleQuestStatus queststatus;
-        MapleQuestStatus queststatus_from;
+        MapleQuestStatus questStatus;
+        MapleQuestStatus questStatusFrom;
         MapleQuest quest;
+
         for (final Map.Entry<Integer, Object> qs : ct.Quest.entrySet()) {
             quest = MapleQuest.getInstance(qs.getKey());
-            queststatus_from = (MapleQuestStatus) qs.getValue();
+            questStatusFrom = (MapleQuestStatus) qs.getValue();
 
-            queststatus = new MapleQuestStatus(quest, queststatus_from.getStatus());
-            queststatus.setForfeited(queststatus_from.getForfeited());
-            queststatus.setCustomData(queststatus_from.getCustomData());
-            queststatus.setCompletionTime(queststatus_from.getCompletionTime());
+            questStatus = new MapleQuestStatus(quest, questStatusFrom.getStatus());
+            questStatus.setCustomData(questStatusFrom.getCustomData());
+            questStatus.setCompletionTime(questStatusFrom.getCompletionTime());
 
-            if (queststatus_from.getMobKills() != null) {
-                for (final Map.Entry<Integer, Integer> mobkills : queststatus_from.getMobKills().entrySet()) {
-                    queststatus.setMobKills(mobkills.getKey(), mobkills.getValue());
+            if (questStatusFrom.getMobKills() != null) {
+                for (final Map.Entry<Integer, Integer> mobkills : questStatusFrom.getMobKills().entrySet()) {
+                    questStatus.setMobKills(mobkills.getKey(), mobkills.getValue());
                 }
             }
-            ret.quests.put(quest, queststatus);
+            ret.quests.put(quest, questStatus);
         }
         for (final Map.Entry<Integer, SkillEntry> qs : ct.Skills.entrySet()) {
             ret.skills.put(SkillFactory.getSkill(qs.getKey()), qs.getValue());
@@ -568,33 +559,42 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             ps.close();
 
             boolean compensate_previousEvans = false;
-            ps = con.prepareStatement("SELECT * FROM queststatus WHERE characterid = ?");
+            ps = con.prepareStatement("SELECT * FROM `quest_status` WHERE `character_id` = ?");
             ps.setInt(1, charid);
             rs = ps.executeQuery();
-            pse = con.prepareStatement("SELECT * FROM queststatusmobs WHERE queststatusid = ?");
+            pse = con.prepareStatement("SELECT * FROM `quest_mobs` WHERE `quest_status_id` = ?");
 
             while (rs.next()) {
-                final int id = rs.getInt("quest");
+                final int id = rs.getInt("quest_id");
+
                 if (id == 170000) {
                     compensate_previousEvans = true;
                 }
-                final MapleQuest q = MapleQuest.getInstance(id);
-                final MapleQuestStatus status = new MapleQuestStatus(q, rs.getByte("status"));
-                final long cTime = rs.getLong("time");
-                if (cTime > -1) {
-                    status.setCompletionTime(cTime * 1000);
+
+                final MapleQuest quest = MapleQuest.getInstance(id);
+                final MapleQuestStatus status = new MapleQuestStatus(quest, rs.getByte("status"));
+
+                status.setInfo(rs.getString("info"));
+                status.setCustomData(rs.getString("custom_data"));
+                status.setCompletionTime(DateTimeUtil.toTimestamp(rs.getString("updated_at")));
+
+                ret.quests.put(quest, status);
+
+                if (rs.getString("custom_info_data") != null) {
+                    ret.questinfo.put(rs.getInt("quest_id"), rs.getString("custom_info_data"));
                 }
-                status.setForfeited(rs.getInt("forfeited"));
-                status.setCustomData(rs.getString("customData"));
-                ret.quests.put(q, status);
-                pse.setInt(1, rs.getInt("queststatusid"));
+
+                pse.setInt(1, rs.getInt("quest_id"));
+
                 final ResultSet rsMobs = pse.executeQuery();
 
                 while (rsMobs.next()) {
-                    status.setMobKills(rsMobs.getInt("mob"), rsMobs.getInt("count"));
+                    status.setMobKills(rsMobs.getInt("mob_id"), rsMobs.getInt("count"));
                 }
+
                 rsMobs.close();
             }
+
             rs.close();
             ps.close();
             pse.close();
@@ -652,16 +652,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 } else {
                     rs.close();
                 }
-                ps.close();
-
-                ps = con.prepareStatement("SELECT * FROM questinfo WHERE characterid = ?");
-                ps.setInt(1, charid);
-                rs = ps.executeQuery();
-
-                while (rs.next()) {
-                    ret.questinfo.put(rs.getInt("quest"), rs.getString("customData"));
-                }
-                rs.close();
                 ps.close();
 
                 ps = con.prepareStatement("SELECT skillid, skilllevel, masterlevel, expiration FROM skills WHERE characterid = ?");
@@ -897,27 +887,33 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             }
             ps.close();
             rs.close();
-            ps = con.prepareStatement("INSERT INTO queststatus (`queststatusid`, `characterid`, `quest`, `status`, `time`, `forfeited`, `customData`) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)", DatabaseConnection.RETURN_GENERATED_KEYS);
-            pse = con.prepareStatement("INSERT INTO queststatusmobs VALUES (DEFAULT, ?, ?, ?)");
+
+            final String now = DateTimeUtil.now();
+            ps = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `custom_data`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            pse = con.prepareStatement("INSERT INTO `quest_mobs` VALUES (?, ?, ?, ?, ?)");
             ps.setInt(1, chr.id);
             for (final MapleQuestStatus q : chr.quests.values()) {
                 ps.setInt(2, q.getQuest().getId());
                 ps.setInt(3, q.getStatus());
-                ps.setInt(4, (int) (q.getCompletionTime() / 1000));
-                ps.setInt(5, q.getForfeited());
-                ps.setString(6, q.getCustomData());
+                ps.setString(4, q.getInfo());
+                ps.setString(5, now);
+                ps.setString(6, DateTimeUtil.now(q.getCompletionTime()));
+                ps.setString(7, q.getCustomData());
                 ps.executeUpdate();
                 rs = ps.getGeneratedKeys();
                 rs.next();
 
                 if (q.hasMobKills()) {
-                    for (int mob : q.getMobKills().keySet()) {
+                    for (int mobId : q.getMobKills().keySet()) {
                         pse.setInt(1, rs.getInt(1));
-                        pse.setInt(2, mob);
-                        pse.setInt(3, q.getMobKills(mob));
+                        pse.setInt(2, mobId);
+                        pse.setInt(3, q.getMobKills(mobId));
+                        pse.setString(4, now);
+                        pse.setString(5, now);
                         pse.executeUpdate();
                     }
                 }
+
                 rs.close();
             }
             ps.close();
@@ -1129,42 +1125,8 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
             saveInventory(con);
 
-            deleteWhereCharacterId(con, "DELETE FROM questinfo WHERE characterid = ?");
-            ps = con.prepareStatement("INSERT INTO questinfo (`characterid`, `quest`, `customData`) VALUES (?, ?, ?)");
-            ps.setInt(1, id);
-            for (final Entry<Integer, String> q : questinfo.entrySet()) {
-                ps.setInt(2, q.getKey());
-                ps.setString(3, q.getValue());
-                ps.execute();
-            }
-            ps.close();
-
-            deleteWhereCharacterId(con, "DELETE FROM queststatus WHERE characterid = ?");
-            ps = con.prepareStatement("INSERT INTO queststatus (`queststatusid`, `characterid`, `quest`, `status`, `time`, `forfeited`, `customData`) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?)", DatabaseConnection.RETURN_GENERATED_KEYS);
-            pse = con.prepareStatement("INSERT INTO queststatusmobs VALUES (DEFAULT, ?, ?, ?)");
-            ps.setInt(1, id);
-            for (final MapleQuestStatus q : quests.values()) {
-                ps.setInt(2, q.getQuest().getId());
-                ps.setInt(3, q.getStatus());
-                ps.setInt(4, (int) (q.getCompletionTime() / 1000));
-                ps.setInt(5, q.getForfeited());
-                ps.setString(6, q.getCustomData());
-                ps.executeUpdate();
-                rs = ps.getGeneratedKeys();
-                rs.next();
-
-                if (q.hasMobKills()) {
-                    for (int mob : q.getMobKills().keySet()) {
-                        pse.setInt(1, rs.getInt(1));
-                        pse.setInt(2, mob);
-                        pse.setInt(3, q.getMobKills(mob));
-                        pse.executeUpdate();
-                    }
-                }
-                rs.close();
-            }
-            ps.close();
-            pse.close();
+            // 儲存任務記錄
+            this.saveQuests();
 
             deleteWhereCharacterId(con, "DELETE FROM skills WHERE characterid = ?");
             ps = con.prepareStatement("INSERT INTO skills (characterid, skillid, skilllevel, masterlevel, expiration) VALUES (?, ?, ?, ?, ?)");
@@ -1321,6 +1283,104 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         }
     }
 
+    /**
+     * 儲存任務記錄
+     */
+    private void saveQuests()
+    {
+        try {
+            final String now = DateTimeUtil.now();
+
+            final Connection con = DatabaseConnection.getConnection();
+
+            final PreparedStatement psQuery = con.prepareStatement("SELECT `id` FROM `quest_status` WHERE `character_id` = ? AND `quest_id` = ?");
+            final PreparedStatement psInsert = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `custom_data`, `custom_info_data`, `forfeited`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            final PreparedStatement psUpdate = con.prepareStatement("UPDATE `quest_status` SET `status` = ?, `info` = ?, `custom_data` = ?, `custom_info_data` = ?, `forfeited` = ?, `updated_at` = ? WHERE `id` = ?");
+            final PreparedStatement psMobQuery = con.prepareStatement("SELECT `id` FROM `quest_mobs` WHERE `quest_status_id` = ? AND `mob_id` = ?");
+            final PreparedStatement psMobInsert = con.prepareStatement("INSERT INTO `quest_mobs` (`quest_status_id`, `mob_id`, `count`, `created_at`, `updated_at`) VALUES  (?, ?, ?, ?, ?)");
+            final PreparedStatement psMobUpdate = con.prepareStatement("UPDATE `quest_mobs` SET `count` = ?, `updated_at` = ? WHERE `quest_status_id` = ? AND `mob_id` = ?");
+
+            for (final MapleQuestStatus status : this.quests.values()) {
+                final int id;
+                final int questId = status.getQuest().getId();
+
+                psQuery.setInt(1, this.id);
+                psQuery.setInt(2, questId);
+
+                ResultSet rs = psQuery.executeQuery();
+
+                if (rs.next()) {
+                    id = rs.getInt("id");
+
+                    psUpdate.setInt(1, status.getStatus());
+                    psUpdate.setString(2, status.getInfo());
+                    psUpdate.setString(3, status.getCustomData());
+                    psUpdate.setString(4, this.questinfo.get(questId));
+                    psUpdate.setInt(5, status.getForfeited());
+                    psUpdate.setString(6, now);
+                    psUpdate.setInt(7, id);
+                    psUpdate.executeUpdate();
+                } else {
+                    rs.close();
+
+                    psInsert.setInt(1, this.id);
+                    psInsert.setInt(2, questId);
+                    psInsert.setInt(3, status.getStatus());
+                    psInsert.setString(4, status.getInfo());
+                    psInsert.setString(5, status.getCustomData());
+                    psInsert.setString(6, this.questinfo.get(questId));
+                    psInsert.setInt(7, status.getForfeited());
+                    psInsert.setString(8, now);
+                    psInsert.setString(9, now);
+                    psInsert.executeUpdate();
+
+                    rs = psInsert.getGeneratedKeys();
+
+                    if (! rs.next()) {
+                        System.err.println("Can not save quest, character id: " + this.id + ", quest id: " + status.getQuest().getId());
+                        continue;
+                    }
+
+                    id = rs.getInt(1);
+                }
+
+                rs.close();
+
+                if (status.hasMobKills()) {
+                    for (int mobId : status.getMobKills().keySet()) {
+                        psMobQuery.setInt(1, id);
+                        psMobQuery.setInt(2, mobId);
+
+                        rs = psMobQuery.executeQuery();
+
+                        if (rs.next()) {
+                            psMobUpdate.setInt(1, status.getMobKills(mobId));
+                            psMobUpdate.setString(2, now);
+                            psMobUpdate.setInt(3, id);
+                            psMobUpdate.setInt(4, mobId);
+                            psMobUpdate.executeUpdate();
+                        } else {
+                            psMobInsert.setInt(1, id);
+                            psMobInsert.setInt(2, mobId);
+                            psMobInsert.setInt(3, status.getMobKills(mobId));
+                            psMobInsert.setString(4, now);
+                            psMobInsert.setString(5, now);
+                            psMobInsert.executeUpdate();
+                        }
+                    }
+                }
+            }
+
+            psMobUpdate.close();
+            psMobInsert.close();
+            psMobQuery.close();
+            psInsert.close();
+            psUpdate.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void deleteWhereCharacterId(Connection con, String sql) throws SQLException {
         deleteWhereCharacterId(con, sql, id);
     }
@@ -1375,25 +1435,31 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return "";
     }
 
-    public final int getNumQuest() {
+    public final int getCompletedQuestNumber()
+    {
         int i = 0;
-        for (final MapleQuestStatus q : quests.values()) {
-            if (q.getStatus() == 2 && !(q.isCustom())) {
+
+        for (final MapleQuestStatus q : this.quests.values()) {
+            if (q.getStatus() == 2) {
                 i++;
             }
         }
+
         return i;
     }
 
-    public final byte getQuestStatus(final int quest) {
-        return getQuest(MapleQuest.getInstance(quest)).getStatus();
+    public final byte getQuestStatus(final int quest)
+    {
+        return this.getQuest(MapleQuest.getInstance(quest)).getStatus();
     }
 
-    public final MapleQuestStatus getQuest(final MapleQuest quest) {
-        if (!quests.containsKey(quest)) {
+    public final MapleQuestStatus getQuest(final MapleQuest quest)
+    {
+        if (!this.quests.containsKey(quest)) {
             return new MapleQuestStatus(quest, (byte) 0);
         }
-        return quests.get(quest);
+
+        return this.quests.get(quest);
     }
 
     public final void setQuestAdd(final MapleQuest quest, final byte status, final String customData) {
@@ -1417,17 +1483,19 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return quests.get(quest);
     }
 
-    public final void updateQuest(final MapleQuestStatus quest) {
-        updateQuest(quest, false);
+    public final void updateQuest(final MapleQuestStatus quest)
+    {
+        this.updateQuest(quest, false);
     }
 
-    public final void updateQuest(final MapleQuestStatus quest, final boolean update) {
-        quests.put(quest.getQuest(), quest);
-        if (!(quest.isCustom())) {
-            client.getSession().write(MaplePacketCreator.updateQuest(quest));
-            if (quest.getStatus() == 1 && !update) {
-                client.getSession().write(MaplePacketCreator.updateQuestInfo(this, quest.getQuest().getId(), quest.getNpc(), (byte) 8));
-            }
+    public final void updateQuest(final MapleQuestStatus quest, final boolean update)
+    {
+        this.quests.put(quest.getQuest(), quest);
+
+        this.client.getSession().write(MaplePacketCreator.updateQuest(quest));
+
+        if (quest.getStatus() == 1 && !update) {
+            client.getSession().write(MaplePacketCreator.updateQuestInfo(this, quest.getQuest().getId(), quest.getNpc(), (byte) 8));
         }
     }
 
@@ -2741,9 +2809,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     /**
      * Convenience function which adds the supplied parameter to the current hp
      * then directly does a updateSingleStat.
-     *
-     * @see MapleCharacter#setHp(int)
-     * @param delta
      */
     public void addHP(int delta) {
         if (stats.setHp(stats.getHp() + delta)) {
@@ -2754,9 +2819,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     /**
      * Convenience function which adds the supplied parameter to the current mp
      * then directly does a updateSingleStat.
-     *
-     * @see MapleCharacter#setMp(int)
-     * @param delta
      */
     public void addMP(int delta) {
         if (stats.setMp(stats.getMp() + delta)) {
@@ -3136,36 +3198,43 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     }
 
     public void mobKilled(final int id, final int skillID) {
-        for (MapleQuestStatus q : quests.values()) {
-            if (q.getStatus() != 1 || !q.hasMobKills()) {
+        for (MapleQuestStatus questStatus : this.quests.values()) {
+            if (questStatus.getStatus() != 1 || !questStatus.hasMobKills()) {
                 continue;
             }
-            if (q.mobKilled(id, skillID)) {
-                client.getSession().write(MaplePacketCreator.updateQuestMobKills(q));
-                if (q.getQuest().canComplete(this, null)) {
-                    client.getSession().write(MaplePacketCreator.getShowQuestCompletion(q.getQuest().getId()));
+
+            if (questStatus.mobKilled(id, skillID)) {
+                client.getSession().write(MaplePacketCreator.updateQuestMobKills(questStatus));
+                if (questStatus.getQuest().canComplete(this, null)) {
+                    client.getSession().write(MaplePacketCreator.getShowQuestCompletion(questStatus.getQuest().getId()));
                 }
             }
         }
     }
 
-    public final List<MapleQuestStatus> getStartedQuests() {
-        List<MapleQuestStatus> ret = new LinkedList<MapleQuestStatus>();
-        for (MapleQuestStatus q : quests.values()) {
-            if (q.getStatus() == 1 && !(q.isCustom())) {
-                ret.add(q);
+    public final List<MapleQuestStatus> getStartedQuests()
+    {
+        final List<MapleQuestStatus> ret = new LinkedList<>();
+
+        for (MapleQuestStatus quest : this.quests.values()) {
+            if (quest.getStatus() == 1) {
+                ret.add(quest);
             }
         }
+
         return ret;
     }
 
-    public final List<MapleQuestStatus> getCompletedQuests() {
-        List<MapleQuestStatus> ret = new LinkedList<MapleQuestStatus>();
-        for (MapleQuestStatus q : quests.values()) {
-            if (q.getStatus() == 2 && !(q.isCustom())) {
-                ret.add(q);
+    public final List<MapleQuestStatus> getCompletedQuests()
+    {
+        final List<MapleQuestStatus> ret = new LinkedList<>();
+
+        for (MapleQuestStatus quest : this.quests.values()) {
+            if (quest.getStatus() == 2) {
+                ret.add(quest);
             }
         }
+
         return ret;
     }
 

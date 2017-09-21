@@ -35,7 +35,7 @@ import client.SkillEntry;
 import client.BuddylistEntry;
 import client.CharacterNameAndId;
 import client.inventory.MaplePet;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.shops.HiredFishing;
 import tools.Pair;
 import java.util.ArrayList;

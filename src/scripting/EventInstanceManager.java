@@ -40,7 +40,7 @@ import server.MapleCarnivalParty;
 import server.MapleItemInformationProvider;
 import server.MapleSquad;
 import server.Timer.EventTimer;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.life.MapleMonster;
 import server.maps.MapleMap;
 import server.maps.MapleMapFactory;

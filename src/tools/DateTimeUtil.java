@@ -38,6 +38,11 @@ public class DateTimeUtil
         return java.sql.Timestamp.valueOf(datetime).toString();
     }
 
+    public static String now(final long timestamp)
+    {
+        return java.sql.Timestamp.valueOf(LocalDateTime.parse("" + timestamp, formatter())).toString();
+    }
+
     public static String dueyExpiredAt(final boolean isQuick)
     {
         final LocalDateTime expiredAt = LocalDateTime.now().plusDays(29).plusHours(20);

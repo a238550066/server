@@ -1584,7 +1584,7 @@ public class MaplePacketCreator {
                 mplew.writeZeroBytes(10);
                 break;
             case 1:
-                mplew.writeMapleAsciiString(quest.getCustomData() != null ? quest.getCustomData() : "");
+                mplew.writeMapleAsciiString(quest.getInfo() != null ? quest.getInfo() : "");
                 break;
             case 2:
                 mplew.writeLong(PacketHelper.getTime(System.currentTimeMillis()));

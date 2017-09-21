@@ -59,7 +59,7 @@ import server.MapleShopFactory;
 import server.MapleItemInformationProvider;
 import server.MapleInventoryManipulator;
 import server.StructRewardItem;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 import server.maps.SavedLocationType;
 import server.maps.FieldLimitType;
 import server.maps.MapleMap;

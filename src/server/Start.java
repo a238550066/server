@@ -17,7 +17,7 @@ import java.sql.PreparedStatement;
 import server.Timer.*;
 import server.events.MapleOxQuizFactory;
 import server.life.MapleLifeFactory;
-import server.quest.MapleQuest;
+import server.quests.MapleQuest;
 
 public class Start
 {
