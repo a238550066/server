@@ -195,7 +195,7 @@ public class Event_PyramidSubway {
     }
 
     public final void succeed(final MapleCharacter c) {
-        final MapleQuestStatus record = c.getQuestNAdd(MapleQuest.getInstance(type == -1 ? 7662 : 7760));
+        final MapleQuestStatus record = c.getQuestOrAdd(MapleQuest.getInstance(type == -1 ? 7662 : 7760));
         String data = record.getCustomData();
         if (data == null) {
             record.setCustomData("0");

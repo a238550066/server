@@ -1470,7 +1470,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         }
     }
 
-    public final MapleQuestStatus getQuestNAdd(final MapleQuest quest) {
+    public final MapleQuestStatus getQuestOrAdd(final MapleQuest quest) {
         if (!quests.containsKey(quest)) {
             final MapleQuestStatus status = new MapleQuestStatus(quest, (byte) 0);
             quests.put(quest, status);
@@ -5481,7 +5481,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     public boolean startPartyQuest(final int questid) {
         boolean ret = false;
         if (!quests.containsKey(MapleQuest.getInstance(questid)) || !questinfo.containsKey(questid)) {
-            final MapleQuestStatus status = getQuestNAdd(MapleQuest.getInstance(questid));
+            final MapleQuestStatus status = getQuestOrAdd(MapleQuest.getInstance(questid));
             status.setStatus((byte) 1);
             updateQuest(status);
             switch (questid) {
@@ -5749,7 +5749,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     }
 
     public boolean canUseFamilyBuff(MapleFamilyBuffEntry buff) {
-        final MapleQuestStatus stat = getQuestNAdd(MapleQuest.getInstance(buff.questID));
+        final MapleQuestStatus stat = getQuestOrAdd(MapleQuest.getInstance(buff.questID));
         if (stat.getCustomData() == null) {
             stat.setCustomData("0");
         }
@@ -5757,7 +5757,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     }
 
     public void useFamilyBuff(MapleFamilyBuffEntry buff) {
-        final MapleQuestStatus stat = getQuestNAdd(MapleQuest.getInstance(buff.questID));
+        final MapleQuestStatus stat = getQuestOrAdd(MapleQuest.getInstance(buff.questID));
         stat.setCustomData(String.valueOf(System.currentTimeMillis()));
     }
 

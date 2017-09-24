@@ -327,7 +327,7 @@ public class MapleMiniGame extends AbstractPlayerStore {
                 newData.append(",");
             }
             String newDat = newData.toString();
-            z.getQuestNAdd(MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE)).setCustomData(newDat.substring(0, newDat.length() - 1));
+            z.getQuestOrAdd(MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE)).setCustomData(newDat.substring(0, newDat.length() - 1));
         }
     }
 
@@ -335,7 +335,7 @@ public class MapleMiniGame extends AbstractPlayerStore {
         MapleQuest quest = MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE);
         MapleQuestStatus record;
         if (chr.getQuestNoAdd(quest) == null) {
-            record = chr.getQuestNAdd(quest);
+            record = chr.getQuestOrAdd(quest);
             record.setCustomData("0,0,0");
         } else {
             record = chr.getQuestNoAdd(quest);

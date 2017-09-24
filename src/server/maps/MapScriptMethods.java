@@ -649,7 +649,7 @@ public class MapScriptMethods {
                     }
 
                     final String quest = c.getPlayer().getInfoQuest(m.questId - 2005);
-                    final MapleQuestStatus stat = c.getPlayer().getQuestNAdd(MapleQuest.getInstance(m.questId - 1995));
+                    final MapleQuestStatus stat = c.getPlayer().getQuestOrAdd(MapleQuest.getInstance(m.questId - 1995));
                     if (stat.getCustomData() == null) { //just a check.
                         stat.setCustomData("0");
                     }

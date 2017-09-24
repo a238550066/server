@@ -250,7 +250,7 @@ public class EventInstanceManager {
             return;
         }
         for (MapleCharacter chr : getPlayers()) {
-            final MapleQuestStatus record = chr.getQuestNAdd(MapleQuest.getInstance(150001));
+            final MapleQuestStatus record = chr.getQuestOrAdd(MapleQuest.getInstance(150001));
 
             if (record.getCustomData() != null) {
                 record.setCustomData(String.valueOf(points + Integer.parseInt(record.getCustomData())));
@@ -757,7 +757,7 @@ public class EventInstanceManager {
             MapleCharacter player = squad.getChar(chr);
             if (player != null && player.getMapId() == mapid) {
                 if (questID > 0) {
-                    player.getQuestNAdd(MapleQuest.getInstance(questID)).setCustomData(String.valueOf(System.currentTimeMillis()));
+                    player.getQuestOrAdd(MapleQuest.getInstance(questID)).setCustomData(String.valueOf(System.currentTimeMillis()));
                 }
                 registerPlayer(player);
                 /*                if (player.getParty() != null) {

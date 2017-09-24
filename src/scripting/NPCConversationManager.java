@@ -1,813 +1,332 @@
 /*
- This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
- Matthias Butz <matze@odinms.de>
- Jan Christian Meyer <vimes@odinms.de>
-
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU Affero General Public License version 3
- as published by the Free Software Foundation. You may not use, modify
- or distribute this program under any other version of the
- GNU Affero General Public License.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Affero General Public License for more details.
-
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * TMS 113 scripting/NPCConversationManager.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package scripting;
-
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Connection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import client.*;
 import client.inventory.Equip;
 import client.inventory.IItem;
-import constants.GameConstants;
-import client.inventory.ItemFlag;
 import client.inventory.MapleInventory;
 import client.inventory.MapleInventoryType;
-import server.MapleCarnivalParty;
-import server.Randomizer;
-import server.MapleInventoryManipulator;
-import server.MapleShopFactory;
-import server.MapleSquad;
-import server.maps.MapleMap;
-import server.maps.EventDojoAgent;
-import server.maps.AramiaFireWorks;
-import server.quests.MapleQuest;
-import tools.MaplePacketCreator;
-import tools.Pair;
-import tools.packet.PlayerShopPacket;
-import server.MapleItemInformationProvider;
+import constants.GameConstants;
 import handling.channel.ChannelServer;
 import handling.channel.MapleGuildRanking;
-import database.DatabaseConnection;
+import handling.channel.handler.HiredFishingHandler;
 import handling.world.MapleParty;
 import handling.world.MaplePartyCharacter;
 import handling.world.World;
 import handling.world.guild.MapleGuild;
-import server.MapleCarnivalChallenge;
-import java.util.HashMap;
 import handling.world.guild.MapleGuildAlliance;
-
-import java.util.Arrays;
-import javax.script.Invocable;
-import server.MapleStatEffect;
-import server.SpeedRunner;
-import server.maps.SpeedRunType;
-import server.StructPotentialItem;
-import server.Timer.CloneTimer;
-import server.life.MapleMonster;
-import server.maps.Event_PyramidSubway;
-import server.maps.MapleMapObject;
-import server.maps.MapleMapObjectType;
-import handling.channel.handler.HiredFishingHandler;
+import server.*;
+import server.Timer;
+import server.maps.*;
+import server.quests.MapleQuest;
+import tools.MaplePacketCreator;
+import tools.Pair;
 import tools.StringUtil;
+import tools.packet.PlayerShopPacket;
 
-public class NPCConversationManager extends AbstractPlayerInteraction {
+import javax.script.Invocable;
+import java.util.*;
 
-    private MapleClient c;
-    private int npc, questid;
-    private String getText;
-    private byte type; // -1 = NPC, 0 = start quest, 1 = end quest
+public class NPCConversationManager extends AbstractPlayerInteraction
+{
+    boolean pendingDisposal = false;
+    private final int npcId;
+    private final int questId;
+    private final byte type; // -1 = NPC, 0 = start quest, 1 = end quest
+    private final Invocable iv;
     private byte lastMsg = -1;
-    public boolean pendingDisposal = false;
-    private Invocable iv;
+    private String getText;
 
-    public NPCConversationManager(MapleClient c, int npc, int questid, byte type, Invocable iv) {
+    public NPCConversationManager(final MapleClient c, final int npcId, final int questId, final byte type, final Invocable iv)
+    {
         super(c);
-        this.c = c;
-        this.npc = npc;
-        this.questid = questid;
+
+        this.npcId = npcId;
+        this.questId = questId;
         this.type = type;
         this.iv = iv;
     }
 
-    public Invocable getIv() {
-        return iv;
+    /* NPC 對話相關 */
+
+    public final void sendNext(final String text)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "00 01", (byte) 0));
+        this.lastMsg = 0;
     }
 
-    public int getNpc() {
-        return npc;
+    public final void sendNextS(final String text, final byte type)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "00 01", type));
+        this.lastMsg = 0;
     }
 
-    public int getQuest() {
-        return questid;
+    public final void sendPrev(final String text)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "01 00", (byte) 0));
+        this.lastMsg = 0;
     }
 
-    public byte getType() {
-        return type;
+    public final void sendPrevS(final String text, final byte type)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "01 00", type));
+        this.lastMsg = 0;
     }
 
-    public void safeDispose() {
-        pendingDisposal = true;
+    public final void sendNextPrev(final String text)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "01 01", (byte) 0));
+        this.lastMsg = 0;
     }
 
-    public void dispose() {
-        NPCScriptManager.getInstance().dispose(c);
+    public final void sendNextPrevS(final String text)
+    {
+        this.sendNextPrevS(text, (byte) 3);
     }
 
-    public void askMapSelection(final String sel) {
-        if (lastMsg > -1) {
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getMapSelection(npc, sel));
-        lastMsg = 0xD;
+    public final void sendPlayerToNpc(final String text)
+    {
+        this.sendNextPrevS(text, (byte) 3);
     }
 
-    public void sendNext(String text) {
-        if (lastMsg > -1) {
+    public final void sendNextPrevS(final String text, final byte type)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { //sendNext will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "00 01", (byte) 0));
-        lastMsg = 0;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "01 01", type));
+        this.lastMsg = 0;
     }
 
-    public void sendNextS(String text, byte type) {
-        if (lastMsg > -1) {
+    public final void sendOk(final String text)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimpleS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "00 01", type));
-        lastMsg = 0;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "00 00", (byte) 0));
+        this.lastMsg = 0;
     }
 
-    public void sendPrev(String text) {
-        if (lastMsg > -1) {
+    public final void sendOkS(final String text, final byte type)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "01 00", (byte) 0));
-        lastMsg = 0;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0, text, "00 00", type));
+        this.lastMsg = 0;
     }
 
-    public void sendPrevS(String text, byte type) {
-        if (lastMsg > -1) {
+    public final void sendYesNo(final String text)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimpleS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "01 00", type));
-        lastMsg = 0;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 1, text, "", (byte) 0));
+        this.lastMsg = 1;
     }
 
-    public void sendNextPrev(String text) {
-        if (lastMsg > -1) {
+    public final void sendYesNoS(final String text, final byte type)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "01 01", (byte) 0));
-        lastMsg = 0;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 1, text, "", type));
+        this.lastMsg = 1;
     }
 
-    public void PlayerToNpc(String text) {
-        sendNextPrevS(text, (byte) 3);
+    public final void sendAcceptDecline(final String text)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 0x0B, text, "", (byte) 0));
+        this.lastMsg = 0xB;
     }
 
-    public void sendNextPrevS(String text) {
-        sendNextPrevS(text, (byte) 3);
-    }
+    public void sendSimple(final String text)
+    {
+        if (this.lastMsg > -1) {
+            return;
+        }
 
-    public void sendNextPrevS(String text, byte type) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimpleS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "01 01", type));
-        lastMsg = 0;
-    }
-
-    public void sendOk(String text) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "00 00", (byte) 0));
-        lastMsg = 0;
-    }
-
-    public void sendOkS(String text, byte type) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimpleS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0, text, "00 00", type));
-        lastMsg = 0;
-    }
-
-    public void sendYesNo(String text) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 1, text, "", (byte) 0));
-        lastMsg = 1;
-    }
-
-    public void sendYesNoS(String text, byte type) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimpleS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 1, text, "", type));
-        lastMsg = 1;
-    }
-
-    public void sendAcceptDecline(String text) {
-        askAcceptDecline(text);
-    }
-
-    public void sendAcceptDeclineNoESC(String text) {
-        askAcceptDeclineNoESC(text);
-    }
-
-    public void askAcceptDecline(String text) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0x0B, text, "", (byte) 0));
-        lastMsg = 0xB;
-    }
-
-    public void askAcceptDeclineNoESC(String text) {
-        if (lastMsg > -1) {
-            return;
-        }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 0x0C, text, "", (byte) 0));
-        lastMsg = 0xC;
-    }
-
-    public void askAvatar(String text, int... args) {
-        if (lastMsg > -1) {
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalkStyle(npc, text, args));
-        lastMsg = 7;
-    }
-
-    public void sendSimple(String text) {
-        if (lastMsg > -1) {
-            return;
-        }
         if (!text.contains("#L")) { //sendSimple will dc otherwise!
-            sendNext(text);
+            this.sendNext(text);
             return;
         }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 4, text, "", (byte) 0));
-        lastMsg = 4;
+
+        this.writePacket(MaplePacketCreator.getNPCTalk(this.getNpc(), (byte) 4, text, "", (byte) 0));
+        this.lastMsg = 4;
     }
 
-    public void sendSimpleS(String text, byte type) {
-        if (lastMsg > -1) {
+    public final void sendStyle(final String text, final int styles[])
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (!text.contains("#L")) { //sendSimple will dc otherwise!
-            sendNextS(text, type);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalk(npc, (byte) 4, text, "", (byte) type));
-        lastMsg = 4;
+
+        this.writePacket(MaplePacketCreator.getNPCTalkStyle(this.getNpc(), text, styles));
+        this.lastMsg = 7;
     }
 
-    public void sendStyle(String text, int styles[]) {
-        if (lastMsg > -1) {
+    public final void sendGetNumber(final String text, final int def, final int min, final int max)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        c.getSession().write(MaplePacketCreator.getNPCTalkStyle(npc, text, styles));
-        lastMsg = 7;
+
+        this.writePacket(MaplePacketCreator.getNPCTalkNum(this.getNpc(), text, def, min, max));
+        this.lastMsg = 3;
     }
 
-    public void sendGetNumber(String text, int def, int min, int max) {
-        if (lastMsg > -1) {
+    public final void sendGetText(final String text)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalkNum(npc, text, def, min, max));
-        lastMsg = 3;
+
+        this.writePacket(MaplePacketCreator.getNPCTalkText(this.getNpc(), text));
+        this.lastMsg = 2;
     }
 
-    public void sendGetText(String text) {
-        if (lastMsg > -1) {
+    public final void askAvatar(final String text, final int... args)
+    {
+        if (this.lastMsg > -1) {
             return;
         }
-        if (text.contains("#L")) { // will dc otherwise!
-            sendSimple(text);
-            return;
-        }
-        c.getSession().write(MaplePacketCreator.getNPCTalkText(npc, text));
-        lastMsg = 2;
+
+        this.writePacket(MaplePacketCreator.getNPCTalkStyle(this.getNpc(), text, args));
+        this.lastMsg = 7;
     }
 
-    public void setGetText(String text) {
+    public final void setGetText(final String text)
+    {
         this.getText = text;
     }
 
-    public String getText() {
-        return getText;
+    public final String getText()
+    {
+        return this.getText;
     }
 
-    public void setHair(int hair) {
-        getPlayer().setHair(hair);
-        getPlayer().updateSingleStat(MapleStat.HAIR, hair);
-        getPlayer().equipChanged();
-    }
+    /* 地圖相關 */
 
-    public void setFace(int face) {
-        getPlayer().setFace(face);
-        getPlayer().updateSingleStat(MapleStat.FACE, face);
-        getPlayer().equipChanged();
-    }
-
-    public void setSkin(int color) {
-        getPlayer().setSkinColor((byte) color);
-        getPlayer().updateSingleStat(MapleStat.SKIN, color);
-        getPlayer().equipChanged();
-    }
-
-    public int setRandomAvatar(int ticket, int... args_all) {
-        if (!haveItem(ticket)) {
-            return -1;
-        }
-        gainItem(ticket, (short) -1);
-
-        int args = args_all[Randomizer.nextInt(args_all.length)];
-        if (args < 100) {
-            c.getPlayer().setSkinColor((byte) args);
-            c.getPlayer().updateSingleStat(MapleStat.SKIN, args);
-        } else if (args < 30000) {
-            c.getPlayer().setFace(args);
-            c.getPlayer().updateSingleStat(MapleStat.FACE, args);
-        } else {
-            c.getPlayer().setHair(args);
-            c.getPlayer().updateSingleStat(MapleStat.HAIR, args);
-        }
-        c.getPlayer().equipChanged();
-
-        return 1;
-    }
-
-    public int setAvatar(int ticket, int args) {
-        if (!haveItem(ticket)) {
-            return -1;
-        }
-        gainItem(ticket, (short) -1);
-
-        if (args < 100) {
-            c.getPlayer().setSkinColor((byte) args);
-            c.getPlayer().updateSingleStat(MapleStat.SKIN, args);
-        } else if (args < 30000) {
-            c.getPlayer().setFace(args);
-            c.getPlayer().updateSingleStat(MapleStat.FACE, args);
-        } else {
-            c.getPlayer().setHair(args);
-            c.getPlayer().updateSingleStat(MapleStat.HAIR, args);
-        }
-        c.getPlayer().equipChanged();
-
-        return 1;
-    }
-
-    public void sendStorage() {
-        c.getPlayer().setConversation(4);
-        c.getPlayer().getStorage().sendStorage(c, npc);
-    }
-
-    public void openShop(int id) {
-        MapleShopFactory.getInstance().getShop(id).sendShop(c);
-    }
-
-    public int gainGachaponItem(int id, int quantity) {
-        return gainGachaponItem(id, quantity, c.getPlayer().getMap().getStreetName() + " - " + c.getPlayer().getMap().getMapName() , false);
-    }
-	
-	public int gainGachaponItem(int id, int quantity, final boolean broad) {
-        return gainGachaponItem(id, quantity, c.getPlayer().getMap().getStreetName() + " - " + c.getPlayer().getMap().getMapName() , broad);
-    }
-
-    public int gainGachaponItem(int id, int quantity, final String msg , final boolean broad ) {
-        try {
-            if (!MapleItemInformationProvider.getInstance().itemExists(id)) {
-                return -1;
-            }
-            final IItem item = MapleInventoryManipulator.addbyId_Gachapon(c, id, (short) quantity);
-
-            if (item == null) {
-                return -1;
-            }
-            final byte rareness = GameConstants.gachaponRareItem(item.getItemId());
-            if (rareness > 0 || broad ) {
-                World.Broadcast.broadcastMessage(MaplePacketCreator.getGachaponMega("[" + msg + "] " + c.getPlayer().getName(), " : 從轉蛋機轉到了!", item, rareness,c.getChannel()-1).getBytes());
-            }
-            return item.getItemId();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
-
-    public void changeJob(int job) {
-        c.getPlayer().changeJob(job);
-    }
-
-    public void startQuest(int id) {
-        MapleQuest.getInstance(id).start(getPlayer(), npc);
-    }
-
-    public void completeQuest(int id) {
-        MapleQuest.getInstance(id).complete(getPlayer(), npc);
-    }
-
-    public void forfeitQuest(int id) {
-        MapleQuest.getInstance(id).forfeit(getPlayer());
-    }
-
-    public void forceStartQuest() {
-        MapleQuest.getInstance(questid).forceStart(getPlayer(), getNpc(), null);
-    }
-
-    public void forceStartQuest(int id) {
-        MapleQuest.getInstance(id).forceStart(getPlayer(), getNpc(), null);
-    }
-
-    public void forceStartQuest(String customData) {
-        MapleQuest.getInstance(questid).forceStart(getPlayer(), getNpc(), customData);
-    }
-
-    public void forceCompleteQuest() {
-        MapleQuest.getInstance(this.questid).forceComplete(getPlayer(), getNpc());
-    }
-
-    public void forceCompleteQuest(final int id) {
-        MapleQuest.getInstance(id).forceComplete(getPlayer(), getNpc());
-    }
-
-    public String getQuestCustomData(final int id) {
-        return c.getPlayer().getQuestNAdd(MapleQuest.getInstance(id)).getInfo();
-    }
-
-    public void setQuestCustomData(final int id, String customData) {
-        final MapleQuestStatus status = getPlayer().getQuestNAdd(MapleQuest.getInstance(id));
-
-        status.setInfo(customData);
-
-        c.getSession().write(MaplePacketCreator.updateQuest(status));
-    }
-
-    public int getMeso() {
-        return getPlayer().getMeso();
-    }
-
-    public void gainAp(final int amount) {
-        c.getPlayer().gainAp((short) amount);
-    }
-
-    public void expandInventory(byte type, int amt) {
-        c.getPlayer().expandInventory(type, amt);
-    }
-
-    public void unequipEverything() {
-        MapleInventory equipped = getPlayer().getInventory(MapleInventoryType.EQUIPPED);
-        MapleInventory equip = getPlayer().getInventory(MapleInventoryType.EQUIP);
-        List<Short> ids = new LinkedList<Short>();
-        for (IItem item : equipped.list()) {
-            ids.add(item.getPosition());
-        }
-        for (short id : ids) {
-            MapleInventoryManipulator.unequip(getC(), id, equip.getNextFreeSlot());
-        }
-    }
-
-    public final void clearSkills() {
-        Map<ISkill, SkillEntry> skills = getPlayer().getSkills();
-        for (Entry<ISkill, SkillEntry> skill : skills.entrySet()) {
-            getPlayer().changeSkillLevel(skill.getKey(), (byte) 0, (byte) 0);
-        }
-    }
-
-    public boolean hasSkill(int skillid) {
-        ISkill theSkill = SkillFactory.getSkill(skillid);
-        if (theSkill != null) {
-            return c.getPlayer().getSkillLevel(theSkill) > 0;
-        }
-        return false;
-    }
-
-    public void showEffect(boolean broadcast, String effect) {
+    public final void showEffect(final boolean broadcast, final String effect)
+    {
         if (broadcast) {
-            c.getPlayer().getMap().broadcastMessage(MaplePacketCreator.showEffect(effect));
+            this.getMap().broadcastMessage(MaplePacketCreator.showEffect(effect));
         } else {
-            c.getSession().write(MaplePacketCreator.showEffect(effect));
+            this.writePacket(MaplePacketCreator.showEffect(effect));
         }
     }
 
-    public void playSound(boolean broadcast, String sound) {
+    public final void playSound(final boolean broadcast, final String sound)
+    {
         if (broadcast) {
-            c.getPlayer().getMap().broadcastMessage(MaplePacketCreator.playSound(sound));
+            this.getMap().broadcastMessage(MaplePacketCreator.playSound(sound));
         } else {
-            c.getSession().write(MaplePacketCreator.playSound(sound));
+            this.writePacket(MaplePacketCreator.playSound(sound));
         }
     }
 
-    public void environmentChange(boolean broadcast, String env) {
+    public final void environmentChange(final boolean broadcast, final String env)
+    {
         if (broadcast) {
-            c.getPlayer().getMap().broadcastMessage(MaplePacketCreator.environmentChange(env, 2));
+            this.getMap().broadcastMessage(MaplePacketCreator.environmentChange(env, 2));
         } else {
-            c.getSession().write(MaplePacketCreator.environmentChange(env, 2));
+            this.writePacket(MaplePacketCreator.environmentChange(env, 2));
         }
     }
 
-    public void updateBuddyCapacity(int capacity) {
-        c.getPlayer().setBuddyCapacity((byte) capacity);
+    /* 玩家相關 */
+
+    public final int getMeso()
+    {
+        return this.getPlayer().getMeso();
     }
 
-    public int getBuddyCapacity() {
-        return c.getPlayer().getBuddyCapacity();
+    public boolean hasSkill(final int skillId)
+    {
+        final ISkill skill = SkillFactory.getSkill(skillId);
+
+        return skill != null && this.getPlayer().getSkillLevel(skill) > 0;
     }
 
-    public int partyMembersInMap() {
-        int inMap = 0;
-        for (MapleCharacter char2 : getPlayer().getMap().getCharactersThreadsafe()) {
-            if (char2.getParty() == getPlayer().getParty()) {
-                inMap++;
-            }
-        }
-        return inMap;
+    public final void gainAp(final int amount)
+    {
+        this.getPlayer().gainAp((short) amount);
     }
 
-    public List<MapleCharacter> getPartyMembers() {
-        if (getPlayer().getParty() == null) {
-            return null;
-        }
-        List<MapleCharacter> chars = new LinkedList<MapleCharacter>(); // creates an empty array full of shit..
-        for (MaplePartyCharacter chr : getPlayer().getParty().getMembers()) {
-            for (ChannelServer channel : ChannelServer.getAllInstances()) {
-                MapleCharacter ch = channel.getPlayerStorage().getCharacterById(chr.getId());
-                if (ch != null) { // double check <3
-                    chars.add(ch);
-                }
-            }
-        }
-        return chars;
+    public final void expandInventory(final byte type, final int amount)
+    {
+        this.getPlayer().expandInventory(type, amount);
     }
 
-    public void warpPartyWithExp(int mapId, int exp) {
-        MapleMap target = getMap(mapId);
-        for (MaplePartyCharacter chr : getPlayer().getParty().getMembers()) {
-            MapleCharacter curChar = c.getChannelServer().getPlayerStorage().getCharacterByName(chr.getName());
-            if ((curChar.getEventInstance() == null && getPlayer().getEventInstance() == null) || curChar.getEventInstance() == getPlayer().getEventInstance()) {
-                curChar.changeMap(target, target.getPortal(0));
-                curChar.gainExp(exp, true, false, true);
-            }
-        }
+    public final void changeJob(final int job)
+    {
+        this.getPlayer().changeJob(job);
     }
 
-    public void warpPartyWithExpMeso(int mapId, int exp, int meso) {
-        MapleMap target = getMap(mapId);
-        for (MaplePartyCharacter chr : getPlayer().getParty().getMembers()) {
-            MapleCharacter curChar = c.getChannelServer().getPlayerStorage().getCharacterByName(chr.getName());
-            if ((curChar.getEventInstance() == null && getPlayer().getEventInstance() == null) || curChar.getEventInstance() == getPlayer().getEventInstance()) {
-                curChar.changeMap(target, target.getPortal(0));
-                curChar.gainExp(exp, true, false, true);
-                curChar.gainMeso(meso, true);
-            }
-        }
+    public final void updateBuddyCapacity(final int capacity)
+    {
+        this.getPlayer().setBuddyCapacity((byte) capacity);
     }
 
-    public MapleSquad getSquad(String type) {
-        return c.getChannelServer().getMapleSquad(type);
+    public final int getBuddyCapacity() {
+        return this.getPlayer().getBuddyCapacity();
     }
 
-    public int getSquadAvailability(String type) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad == null) {
-            return -1;
-        }
-        return squad.getStatus();
-    }
+    public final void changeStat(final byte slot, final int type, final short amount)
+    {
+        final Equip sel = (Equip) this.getPlayer().getInventory(MapleInventoryType.EQUIPPED).getItem(slot);
 
-    public boolean registerSquad(String type, int minutes, String startText) {
-        if (c.getChannelServer().getMapleSquad(type) == null) {
-            final MapleSquad squad = new MapleSquad(c.getChannel(), type, c.getPlayer(), minutes * 60 * 1000, startText);
-            final boolean ret = c.getChannelServer().addMapleSquad(squad, type);
-            if (ret) {
-                final MapleMap map = c.getPlayer().getMap();
-
-                map.broadcastMessage(MaplePacketCreator.getClock(minutes * 60));
-                map.broadcastMessage(MaplePacketCreator.serverNotice(6, c.getPlayer().getName() + startText));
-            } else {
-                squad.clear();
-            }
-            return ret;
-        }
-        return false;
-    }
-
-    public boolean getSquadList(String type, byte type_) {
-//        try {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad == null) {
-            return false;
-        }
-        if (type_ == 0 || type_ == 3) { // Normal viewing
-            sendNext(squad.getSquadMemberString(type_));
-        } else if (type_ == 1) { // Squad Leader banning, Check out banned participant
-            sendSimple(squad.getSquadMemberString(type_));
-        } else if (type_ == 2) {
-            if (squad.getBannedMemberSize() > 0) {
-                sendSimple(squad.getSquadMemberString(type_));
-            } else {
-                sendNext(squad.getSquadMemberString(type_));
-            }
-        }
-        return true;
-        /*        } catch (NullPointerException ex) {
-         FileoutputUtil.outputFileError(FileoutputUtil.ScriptEx_Log, ex);
-         return false;
-         }*/
-    }
-
-    public byte isSquadLeader(String type) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad == null) {
-            return -1;
-        } else {
-            if (squad.getLeader() != null && squad.getLeader().getId() == c.getPlayer().getId()) {
-                return 1;
-            } else {
-                return 0;
-            }
-        }
-    }
-
-    public boolean reAdd(String eim, String squad) {
-        EventInstanceManager eimz = getDisconnected(eim);
-        MapleSquad squadz = getSquad(squad);
-        if (eimz != null && squadz != null) {
-            squadz.reAddMember(getPlayer());
-            eimz.registerPlayer(getPlayer());
-            return true;
-        }
-        return false;
-    }
-
-    public void banMember(String type, int pos) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad != null) {
-            squad.banMember(pos);
-        }
-    }
-
-    public void acceptMember(String type, int pos) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad != null) {
-            squad.acceptMember(pos);
-        }
-    }
-    public String getReadableMillis(long startMillis, long endMillis) {
-        return StringUtil.getReadableMillis(startMillis, endMillis);
-    }
-    public int addMember(String type, boolean join) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad != null) {
-            return squad.addMember(c.getPlayer(), join);
-        }
-        return -1;
-    }
-
-    public byte isSquadMember(String type) {
-        final MapleSquad squad = c.getChannelServer().getMapleSquad(type);
-        if (squad == null) {
-            return -1;
-        } else {
-            if (squad.getMembers().contains(c.getPlayer())) {
-                return 1;
-            } else if (squad.isBanned(c.getPlayer())) {
-                return 2;
-            } else {
-                return 0;
-            }
-        }
-    }
-
-    public void resetReactors() {
-        getPlayer().getMap().resetReactors();
-    }
-
-    public void genericGuildMessage(int code) {
-        c.getSession().write(MaplePacketCreator.genericGuildMessage((byte) code));
-    }
-
-    public void disbandGuild() {
-        final int gid = c.getPlayer().getGuildId();
-        if (gid <= 0 || c.getPlayer().getGuildRank() != 1) {
-            return;
-        }
-        World.Guild.disbandGuild(gid);
-    }
-
-    public void increaseGuildCapacity(boolean UseGP) {
-		if(!UseGP){
-			if (c.getPlayer().getMeso() < 250000) {
-				c.getSession().write(MaplePacketCreator.serverNotice(1, "你沒有足夠的錢"));
-				return;
-			}
-			if(c.getPlayer().getGuild().getCapacity() >= 100){
-				c.getSession().write(MaplePacketCreator.serverNotice(1, "公會人數已經擴充超過100"));
-				return;
-			}
-			final int gid = c.getPlayer().getGuildId();
-			if (gid <= 0) {
-				return;
-			}
-			World.Guild.increaseGuildCapacity(gid);
-			c.getPlayer().gainMeso(-250000, true, false, true);
-		}else{
-			if (c.getPlayer().getGuild().getGP() < 2500) {
-            c.getSession().write(MaplePacketCreator.serverNotice(1, "公會的GP不足."));
-				return;
-			}
-			final int gid = c.getPlayer().getGuildId();
-			if (gid <= 0) {
-				return;
-			}
-			World.Guild.increaseGuildCapacity(gid);
-			c.getPlayer().getGuild().gainGP(-2500);
-		}
-    }
-
-    public void displayGuildRanks() {
-        c.getSession().write(MaplePacketCreator.showGuildRanks(npc, MapleGuildRanking.getInstance().getRank()));
-    }
-
-    public boolean removePlayerFromInstance() {
-        if (c.getPlayer().getEventInstance() != null) {
-            c.getPlayer().getEventInstance().removePlayer(c.getPlayer());
-            return true;
-        }
-        return false;
-    }
-
-    public boolean isPlayerInstance() {
-        if (c.getPlayer().getEventInstance() != null) {
-            return true;
-        }
-        return false;
-    }
-
-    public void changeStat(byte slot, int type, short amount) {
-        Equip sel = (Equip) c.getPlayer().getInventory(MapleInventoryType.EQUIPPED).getItem(slot);
         switch (type) {
             case 0:
                 sel.setStr(amount);
@@ -881,515 +400,868 @@ public class NPCConversationManager extends AbstractPlayerInteraction {
             default:
                 break;
         }
-        c.getPlayer().equipChanged();
-    }
-        public void killAllMonsters() {
-        MapleMap map = c.getPlayer().getMap();
-        double range = Double.POSITIVE_INFINITY;
-        MapleMonster mob;
-        for (MapleMapObject monstermo : map.getMapObjectsInRange(c.getPlayer().getPosition(), range, Arrays.asList(MapleMapObjectType.MONSTER))) {
-            mob = (MapleMonster) monstermo;
-            if (mob.getStats().isBoss()) {
-                map.killMonster(mob, c.getPlayer(), false, false, (byte) 1);
-            }
-        }
-        /*int mapid = c.getPlayer().getMapId();
-         MapleMap map = c.getChannelServer().getMapFactory().getMap(mapid);
-         map.killAllMonsters(true); // No drop. */
+
+        this.getPlayer().equipChanged();
     }
 
-    public void giveMerchantMesos() {
-        long mesos = 0;
-        try {
-            Connection con = (Connection) DatabaseConnection.getConnection();
-            PreparedStatement ps = (PreparedStatement) con.prepareStatement("SELECT * FROM hiredmerchants WHERE merchantid = ?");
-            ps.setInt(1, getPlayer().getId());
-            ResultSet rs = ps.executeQuery();
-            if (!rs.next()) {
-                rs.close();
-                ps.close();
-            } else {
-                mesos = rs.getLong("mesos");
-            }
-            rs.close();
-            ps.close();
-
-            ps = (PreparedStatement) con.prepareStatement("UPDATE hiredmerchants SET mesos = 0 WHERE merchantid = ?");
-            ps.setInt(1, getPlayer().getId());
-            ps.executeUpdate();
-            ps.close();
-
-        } catch (SQLException ex) {
-            System.err.println("Error gaining mesos in hired merchant" + ex);
-        }
-        c.getPlayer().gainMeso((int) mesos, true);
-    }
-    public void dc () {
-        MapleCharacter victim = c.getChannelServer().getPlayerStorage().getCharacterByName(c.getPlayer().getName().toString());
-        victim.getClient().getSession().close();
-        victim.getClient().disconnect(true, false);
-
-    }
-    public long getMerchantMesos() {
-        long mesos = 0;
-        try {
-            Connection con = (Connection) DatabaseConnection.getConnection();
-            PreparedStatement ps = (PreparedStatement) con.prepareStatement("SELECT * FROM hiredmerchants WHERE merchantid = ?");
-            ps.setInt(1, getPlayer().getId());
-            ResultSet rs = ps.executeQuery();
-            if (!rs.next()) {
-                rs.close();
-                ps.close();
-            } else {
-                mesos = rs.getLong("mesos");
-            }
-            rs.close();
-            ps.close();
-        } catch (SQLException ex) {
-            System.err.println("Error gaining mesos in hired merchant" + ex);
-        }
-        return mesos;
-    }
-
-    public void openDuey() {
-        c.getPlayer().setConversation(2);
-        c.getSession().write(MaplePacketCreator.sendDuey((byte) 9, null));
-    }
-
-    public void openMerchantItemStore() {
-        c.getPlayer().setConversation(3);
-        c.getSession().write(PlayerShopPacket.merchItemStore((byte) 0x22));
-    }
-	public void openFishingItemStore() {
-		c.getPlayer().setConversation(6);
-        HiredFishingHandler.OpenFishingItemStore(c);
-    }
-
-    public void sendRepairWindow() {
-        c.getSession().write(MaplePacketCreator.sendRepairWindow(npc));
-    }
-
-    public final int getDojoPoints() {
-        return c.getPlayer().getDojo();
-    }
-
-    public final int getDojoRecord() {
-        return c.getPlayer().getDojoRecord();
-    }
-
-    public void setDojoRecord(final boolean reset) {
-        c.getPlayer().setDojoRecord(reset);
-    }
-
-    /**
-     * 武陵道場 - 開始挑戰
-     */
-    public boolean startDojo(final boolean party)
+    public final void maxStats()
     {
-        return EventDojoAgent.start(c.getPlayer(), party);
-    }
-
-    public boolean start_PyramidSubway(final int pyramid) {
-        if (pyramid >= 0) {
-            return Event_PyramidSubway.warpStartPyramid(c.getPlayer(), pyramid);
+        if (!this.getPlayer().isAdmin()) {
+            return;
         }
-        return Event_PyramidSubway.warpStartSubway(c.getPlayer());
+
+        final PlayerStats stats = this.getPlayer().getStat();
+        final List<Pair<MapleStat, Integer>> statUp = new ArrayList<>(2);
+
+        stats.setStr((short) 32767);
+        stats.setDex((short) 32767);
+        stats.setInt((short) 32767);
+        stats.setLuk((short) 32767);
+        stats.setMaxHp((short) 30000);
+        stats.setMaxMp((short) 30000);
+        stats.setHp((short) 30000);
+        stats.setMp((short) 30000);
+
+        statUp.add(new Pair<>(MapleStat.STR, 32767));
+        statUp.add(new Pair<>(MapleStat.DEX, 32767));
+        statUp.add(new Pair<>(MapleStat.LUK, 32767));
+        statUp.add(new Pair<>(MapleStat.INT, 32767));
+        statUp.add(new Pair<>(MapleStat.HP, 30000));
+        statUp.add(new Pair<>(MapleStat.MAXHP, 30000));
+        statUp.add(new Pair<>(MapleStat.MP, 30000));
+        statUp.add(new Pair<>(MapleStat.MAXMP, 30000));
+
+        this.writePacket(MaplePacketCreator.updatePlayerStats(statUp, this.getJob()));
     }
 
-    public boolean bonus_PyramidSubway(final int pyramid) {
-        if (pyramid >= 0) {
-            return Event_PyramidSubway.warpBonusPyramid(c.getPlayer(), pyramid);
+    public final void maxAllSkills()
+    {
+        for (final ISkill skill : SkillFactory.getAllSkills()) {
+            if (GameConstants.isApplicableSkill(skill.getId())) {
+                this.teachSkill(skill.getId(), skill.getMaxLevel(), skill.getMaxLevel());
+            }
         }
-        return Event_PyramidSubway.warpBonusSubway(c.getPlayer());
     }
 
-    public final short getKegs() {
+    public final void resetStats(final int str, final int dex, final int _int, final int luk)
+    {
+        this.getPlayer().resetStats(str, dex, _int, luk);
+    }
+
+    public final int setAvatar(final int ticket, final int args)
+    {
+        if (!this.haveItem(ticket)) {
+            return -1;
+        }
+
+        this.gainItem(ticket, (short) -1);
+
+        if (args < 100) {
+            this.getPlayer().setSkinColor((byte) args);
+            this.getPlayer().updateSingleStat(MapleStat.SKIN, args);
+        } else if (args < 30000) {
+            this.getPlayer().setFace(args);
+            this.getPlayer().updateSingleStat(MapleStat.FACE, args);
+        } else {
+            this.getPlayer().setHair(args);
+            this.getPlayer().updateSingleStat(MapleStat.HAIR, args);
+        }
+
+        this.getPlayer().equipChanged();
+
+        return 1;
+    }
+
+    public final void setHair(final int hair)
+    {
+        this.getPlayer().setHair(hair);
+        this.getPlayer().updateSingleStat(MapleStat.HAIR, hair);
+        this.getPlayer().equipChanged();
+    }
+
+    public final void setFace(final int face)
+    {
+        this.getPlayer().setFace(face);
+        this.getPlayer().updateSingleStat(MapleStat.FACE, face);
+        this.getPlayer().equipChanged();
+    }
+
+    public void setSkin(final int color)
+    {
+        this.getPlayer().setSkinColor((byte) color);
+        this.getPlayer().updateSingleStat(MapleStat.SKIN, color);
+        this.getPlayer().equipChanged();
+    }
+
+    public final int setRandomAvatar(final int ticket, final int... args)
+    {
+        if (!this.haveItem(ticket)) {
+            return -1;
+        }
+
+        this.gainItem(ticket, (short) -1);
+
+        final int val = args[Randomizer.nextInt(args.length)];
+
+        if (val < 100) {
+            this.getPlayer().setSkinColor((byte) val);
+            this.getPlayer().updateSingleStat(MapleStat.SKIN, val);
+        } else if (val < 30000) {
+            this.getPlayer().setFace(val);
+            this.getPlayer().updateSingleStat(MapleStat.FACE, val);
+        } else {
+            this.getPlayer().setHair(val);
+            this.getPlayer().updateSingleStat(MapleStat.HAIR, val);
+        }
+
+        this.getPlayer().equipChanged();
+
+        return 1;
+    }
+
+    /* 物品相關 */
+
+    public final MapleInventory getInventory(final int type)
+    {
+        return this.getPlayer().getInventory(MapleInventoryType.getByType((byte) type));
+    }
+
+    public final boolean isCash(final int itemId)
+    {
+        return MapleItemInformationProvider.getInstance().isCash(itemId);
+    }
+
+    public final boolean dropItem(final int slot, final int invType, final int quantity)
+    {
+        final MapleInventoryType inv = MapleInventoryType.getByType((byte) invType);
+
+        return inv != null && MapleInventoryManipulator.drop(this.getClient(), inv, (short) slot, (short) quantity, true);
+    }
+
+    /* 轉蛋機 */
+
+    public final int gainGachaponItem(final int itemId, final int quantity)
+    {
+        return gainGachaponItem(itemId, quantity, this.getMap().getStreetName() + " - " + this.getMap().getMapName() , false);
+    }
+
+    public final int gainGachaponItem(final int itemId, int quantity, final boolean broad)
+    {
+        return gainGachaponItem(itemId, quantity, this.getMap().getStreetName() + " - " + this.getMap().getMapName() , broad);
+    }
+
+    public final int gainGachaponItem(final int itemId, int quantity, final String msg , final boolean broad)
+    {
+        try {
+            if (!MapleItemInformationProvider.getInstance().itemExists(itemId)) {
+                return -1;
+            }
+
+            final IItem item = MapleInventoryManipulator.addbyId_Gachapon(this.getClient(), itemId, (short) quantity);
+
+            if (item == null) {
+                return -1;
+            }
+
+            final byte rareness = GameConstants.gachaponRareItem(item.getItemId());
+
+            if (rareness > 0 || broad ) {
+                World.Broadcast.broadcastMessage(MaplePacketCreator.getGachaponMega("[" + msg + "] " + this.getPlayer().getName(), " : 從轉蛋機轉到了!", item, rareness,this.getChannelNumber()-1).getBytes());
+            }
+
+            return item.getItemId();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    /* NPC 相關 */
+
+    public final void sendStorage()
+    {
+        this.getPlayer().setConversation(4);
+        this.getPlayer().getStorage().sendStorage(this.getClient(), this.getNpc());
+    }
+
+    public final void openShop(final int shopId)
+    {
+        MapleShopFactory.getInstance().getShop(shopId).sendShop(this.getClient());
+    }
+
+    public void sendRepairWindow()
+    {
+        this.writePacket(MaplePacketCreator.sendRepairWindow(this.getNpc()));
+    }
+
+    /* 任務相關 */
+
+    public final void startQuest(final int questId)
+    {
+        final MapleQuest quest = this.getQuest(questId);
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.start(this.getPlayer(), this.getNpc());
+    }
+
+    public final void completeQuest(final int questId)
+    {
+        final MapleQuest quest = this.getQuest(questId);
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.complete(this.getPlayer(), this.getNpc());
+    }
+
+    public final void forfeitQuest(final int questId)
+    {
+        final MapleQuest quest = this.getQuest(questId);
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forfeit(this.getPlayer());
+    }
+
+    public final void forceStartQuest()
+    {
+        final MapleQuest quest = this.getQuest(this.getQuestId());
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forceStart(this.getPlayer(), this.getNpc(), null);
+    }
+
+    public final void forceStartQuest(final int questId)
+    {
+        final MapleQuest quest = this.getQuest(questId);
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forceStart(this.getPlayer(), this.getNpc(), null);
+    }
+
+    public final void forceStartQuest(final String customData)
+    {
+        final MapleQuest quest = this.getQuest(this.getQuestId());
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forceStart(this.getPlayer(), this.getNpc(), customData);
+    }
+
+    public final void forceCompleteQuest()
+    {
+        final MapleQuest quest = this.getQuest(this.getQuestId());
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forceComplete(this.getPlayer(), this.getNpc());
+    }
+
+    public final void forceCompleteQuest(final int questId)
+    {
+        final MapleQuest quest = this.getQuest(questId);
+
+        if (quest == null) {
+            return;
+        }
+
+        quest.forceComplete(this.getPlayer(), this.getNpc());
+    }
+
+    public final String getQuestCustomData(final int questId)
+    {
+        return this.getPlayer().getQuestOrAdd(MapleQuest.getInstance(questId)).getInfo();
+    }
+
+    public final void setQuestCustomData(final int questId, final String customData)
+    {
+        final MapleQuestStatus status = this.getPlayer().getQuestOrAdd(MapleQuest.getInstance(questId));
+
+        status.setInfo(customData);
+
+        this.writePacket(MaplePacketCreator.updateQuest(status));
+    }
+
+    public final void setQuestRecord(final MapleCharacter ch, final int questId, final String data)
+    {
+        ch.getQuestOrAdd(MapleQuest.getInstance(questId)).setCustomData(data);
+    }
+
+    /* NPC 相關 */
+
+    public void openDuey()
+    {
+        this.getPlayer().setConversation(2);
+        this.writePacket(MaplePacketCreator.sendDuey((byte) 9, null));
+    }
+
+    public void openMerchantItemStore()
+    {
+        this.getPlayer().setConversation(3);
+        this.writePacket(PlayerShopPacket.merchItemStore((byte) 0x22));
+    }
+
+    public void openFishingItemStore()
+    {
+        this.getPlayer().setConversation(6);
+        HiredFishingHandler.OpenFishingItemStore(this.getClient());
+    }
+
+    /* 隊伍相關 */
+
+    public final int getPartyMembersInMap()
+    {
+        int count = 0;
+
+        for (final MapleCharacter chr : this.getMap().getCharactersThreadsafe()) {
+            if (chr.getParty() == this.getPlayer().getParty()) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public final List<MapleCharacter> getPartyMembers()
+    {
+        if (this.getPlayer().getParty() == null) {
+            return null;
+        }
+
+        final List<MapleCharacter> chars = new LinkedList<>();
+
+        for (final MaplePartyCharacter chr : this.getPlayer().getParty().getMembers()) {
+            for (final ChannelServer channel : ChannelServer.getAllInstances()) {
+                final MapleCharacter ch = channel.getPlayerStorage().getCharacterById(chr.getId());
+
+                if (ch != null) {
+                    chars.add(ch);
+                }
+            }
+        }
+
+        return chars;
+    }
+
+    /* 遠征相關 */
+
+    public final MapleSquad getSquad(final String type)
+    {
+        return this.getChannelServer().getMapleSquad(type);
+    }
+
+    public final int getSquadAvailability(final String type)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad == null) {
+            return -1;
+        }
+
+        return squad.getStatus();
+    }
+
+    public final boolean registerSquad(final String type, final int minutes, final String startText)
+    {
+        if (this.getSquad(type) == null) {
+            final MapleSquad squad = new MapleSquad(this.getChannelNumber(), type, this.getPlayer(), minutes * 60 * 1000, startText);
+            final boolean ret = this.getChannelServer().addMapleSquad(squad, type);
+
+            if (!ret) {
+                squad.clear();
+            } else {
+                final MapleMap map = this.getMap();
+
+                map.broadcastMessage(MaplePacketCreator.getClock(minutes * 60));
+                map.broadcastMessage(MaplePacketCreator.serverNotice(6, this.getName() + startText));
+            }
+
+            return ret;
+        }
+
+        return false;
+    }
+
+    public final boolean getSquadList(final String type, final byte _type)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad == null) {
+            return false;
+        }
+
+        if (_type == 0 || _type == 3) { // Normal viewing
+            this.sendNext(squad.getSquadMemberString(_type));
+        } else if (_type == 1) { // Squad Leader banning, Check out banned participant
+            this.sendSimple(squad.getSquadMemberString(_type));
+        } else if (_type == 2) {
+            if (squad.getBannedMemberSize() > 0) {
+                this.sendSimple(squad.getSquadMemberString(_type));
+            } else {
+                this.sendNext(squad.getSquadMemberString(_type));
+            }
+        }
+
+        return true;
+    }
+
+    public final byte isSquadLeader(final String type)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad == null) {
+            return -1;
+        } else if (squad.getLeader() != null && squad.getLeader().getId() == this.getPlayer().getId()) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    public final byte isSquadMember(final String type)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad == null) {
+            return -1;
+        } else if (squad.getMembers().contains(this.getName())) {
+            return 1;
+        } else if (squad.isBanned(this.getPlayer())) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    public final boolean reAdd(final String event, final String type)
+    {
+        final EventInstanceManager eim = this.getDisconnected(event);
+        final MapleSquad squad = this.getSquad(type);
+
+        if (eim == null || squad == null) {
+            return false;
+        }
+
+        squad.reAddMember(this.getPlayer());
+        eim.registerPlayer(this.getPlayer());
+
+        return true;
+    }
+
+    public final int addMember(final String type, final boolean join)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad != null) {
+            return squad.addMember(this.getPlayer(), join);
+        }
+
+        return -1;
+    }
+
+    public final void acceptMember(final String type, final int pos)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad != null) {
+            squad.acceptMember(pos);
+        }
+    }
+
+    public final void banMember(final String type, final int pos)
+    {
+        final MapleSquad squad = this.getSquad(type);
+
+        if (squad != null) {
+            squad.banMember(pos);
+        }
+    }
+
+    /* 公會相關 */
+
+    public final void genericGuildMessage(final int code)
+    {
+        this.writePacket(MaplePacketCreator.genericGuildMessage((byte) code));
+    }
+
+    public final void disbandGuild()
+    {
+        final int gid = this.getPlayer().getGuildId();
+
+        if (gid <= 0 || this.getPlayer().getGuildRank() != 1) {
+            return;
+        }
+
+        World.Guild.disbandGuild(gid);
+    }
+
+    public final void increaseGuildCapacity(final boolean useGP)
+    {
+        if (useGP) {
+            if (this.getPlayer().getGuild().getGP() < 2500) {
+                this.writePacket(MaplePacketCreator.serverNotice(1, "公會 GP 不足"));
+                return;
+            }
+
+            final int gid = this.getPlayer().getGuildId();
+
+            if (gid > 0) {
+                World.Guild.increaseGuildCapacity(gid);
+                this.getPlayer().getGuild().gainGP(-2500);
+            }
+        } else {
+            if (this.getMeso() < 250000) {
+                this.writePacket(MaplePacketCreator.serverNotice(1, "楓幣不足"));
+                return;
+            }
+
+            if (this.getPlayer().getGuild().getCapacity() >= 100) {
+                this.writePacket(MaplePacketCreator.serverNotice(1, "公會擴充人數已達上限"));
+                return;
+            }
+
+            final int gid = this.getPlayer().getGuildId();
+
+            if (gid > 0) {
+                World.Guild.increaseGuildCapacity(gid);
+                this.getPlayer().gainMeso(-250000, true, false, true);
+            }
+        }
+    }
+
+    public final void displayGuildRanks()
+    {
+        this.writePacket(MaplePacketCreator.showGuildRanks(this.getNpc(), MapleGuildRanking.getInstance().getRank()));
+    }
+
+    /* 公會聯盟 */
+
+    public final boolean createAlliance(final String allianceName)
+    {
+        final MapleParty pt = this.getPlayer().getParty();
+        final MapleCharacter otherChar = this.getChannelServer().getPlayerStorage().getCharacterById(pt.getMemberByIndex(1).getId());
+
+        if (otherChar == null || otherChar.getId() == this.getPlayer().getId()) {
+            return false;
+        }
+
+        try {
+            return World.Alliance.createAlliance(allianceName, this.getPlayer().getId(), otherChar.getId(), this.getPlayer().getGuildId(), otherChar.getGuildId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public final boolean addCapacityToAlliance()
+    {
+        try {
+            final MapleGuild gs = World.Guild.getGuild(this.getPlayer().getGuildId());
+
+            if (gs != null && this.getPlayer().getGuildRank() == 1 && this.getPlayer().getAllianceRank() == 1) {
+                if (World.Alliance.getAllianceLeader(gs.getAllianceId()) == this.getPlayer().getId() && World.Alliance.changeAllianceCapacity(gs.getAllianceId())) {
+                    this.gainMeso(-MapleGuildAlliance.CHANGE_CAPACITY_COST);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public final boolean disbandAlliance()
+    {
+        try {
+            final MapleGuild gs = World.Guild.getGuild(this.getPlayer().getGuildId());
+            if (gs != null && this.getPlayer().getGuildRank() == 1 && this.getPlayer().getAllianceRank() == 1) {
+                if (World.Alliance.getAllianceLeader(gs.getAllianceId()) == this.getPlayer().getId() && World.Alliance.disbandAlliance(gs.getAllianceId())) {
+                    return true;
+                }
+            }
+        } catch (Exception re) {
+            re.printStackTrace();
+        }
+
+        return false;
+    }
+
+    /* 活動相關 */
+
+    public final boolean removePlayerFromInstance()
+    {
+        if (this.getEventInstance() == null) {
+            return false;
+        }
+
+        this.getEventInstance().removePlayer(this.getPlayer());
+
+        return true;
+    }
+
+    public final boolean isPlayerInstance()
+    {
+        return this.getEventInstance() != null;
+    }
+
+    /* 武陵道場相關 */
+
+    public final int getDojoPoints()
+    {
+        return this.getPlayer().getDojo();
+    }
+
+    public final int getDojoRecord()
+    {
+        return this.getPlayer().getDojoRecord();
+    }
+
+    public final void setDojoRecord(final boolean reset)
+    {
+        this.getPlayer().setDojoRecord(reset);
+    }
+
+    public final boolean startDojo(final boolean party)
+    {
+        return EventDojoAgent.start(this.getPlayer(), party);
+    }
+
+    /* 其他 */
+
+    public final boolean startPyramidSubway(final int pyramid)
+    {
+        if (pyramid >= 0) {
+            return Event_PyramidSubway.warpStartPyramid(this.getPlayer(), pyramid);
+        }
+
+        return Event_PyramidSubway.warpStartSubway(this.getPlayer());
+    }
+
+    public final boolean bonusPyramidSubway(final int pyramid)
+    {
+        if (pyramid >= 0) {
+            return Event_PyramidSubway.warpBonusPyramid(this.getPlayer(), pyramid);
+        }
+
+        return Event_PyramidSubway.warpBonusSubway(this.getPlayer());
+    }
+
+    public final short getKegs()
+    {
         return AramiaFireWorks.getInstance().getKegsPercentage();
     }
 
-    public void giveKegs(final int kegs) {
-        AramiaFireWorks.getInstance().giveKegs(c.getPlayer(), kegs);
+    public final void giveKegs(final int kegs)
+    {
+        AramiaFireWorks.getInstance().giveKegs(this.getPlayer(), kegs);
     }
 
-    public final short getSunshines() {
+    public final short getSunshines()
+    {
         return AramiaFireWorks.getInstance().getSunsPercentage();
     }
 
-    public void addSunshines(final int kegs) {
-        AramiaFireWorks.getInstance().giveSuns(c.getPlayer(), kegs);
+    public final void addSunshines(final int kegs)
+    {
+        AramiaFireWorks.getInstance().giveSuns(this.getPlayer(), kegs);
     }
 
-    public final short getDecorations() {
+    public final short getDecorations()
+    {
         return AramiaFireWorks.getInstance().getDecsPercentage();
     }
 
-    public void addDecorations(final int kegs) {
+    public final void addDecorations(final int kegs)
+    {
         try {
-            AramiaFireWorks.getInstance().giveDecs(c.getPlayer(), kegs);
+            AramiaFireWorks.getInstance().giveDecs(this.getPlayer(), kegs);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public final MapleInventory getInventory(int type) {
-        return c.getPlayer().getInventory(MapleInventoryType.getByType((byte) type));
+    public final MapleCarnivalParty getCarnivalParty()
+    {
+        return this.getPlayer().getCarnivalParty();
     }
 
-    public final MapleCarnivalParty getCarnivalParty() {
-        return c.getPlayer().getCarnivalParty();
+    public final MapleCarnivalChallenge getNextCarnivalRequest()
+    {
+        return this.getPlayer().getNextCarnivalRequest();
     }
 
-    public final MapleCarnivalChallenge getNextCarnivalRequest() {
-        return c.getPlayer().getNextCarnivalRequest();
-    }
-
-    public final MapleCarnivalChallenge getCarnivalChallenge(MapleCharacter chr) {
+    public final MapleCarnivalChallenge getCarnivalChallenge(final MapleCharacter chr)
+    {
         return new MapleCarnivalChallenge(chr);
     }
 
-    public void maxStats() {
-        List<Pair<MapleStat, Integer>> statup = new ArrayList<Pair<MapleStat, Integer>>(2);
-        c.getPlayer().getStat().setStr((short) 32767);
-        c.getPlayer().getStat().setDex((short) 32767);
-        c.getPlayer().getStat().setInt((short) 32767);
-        c.getPlayer().getStat().setLuk((short) 32767);
-
-        c.getPlayer().getStat().setMaxHp((short) 30000);
-        c.getPlayer().getStat().setMaxMp((short) 30000);
-        c.getPlayer().getStat().setHp((short) 30000);
-        c.getPlayer().getStat().setMp((short) 30000);
-
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.STR, Integer.valueOf(32767)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.DEX, Integer.valueOf(32767)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.LUK, Integer.valueOf(32767)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.INT, Integer.valueOf(32767)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.HP, Integer.valueOf(30000)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.MAXHP, Integer.valueOf(30000)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.MP, Integer.valueOf(30000)));
-        statup.add(new Pair<MapleStat, Integer>(MapleStat.MAXMP, Integer.valueOf(30000)));
-
-        c.getSession().write(MaplePacketCreator.updatePlayerStats(statup, c.getPlayer().getJob()));
-    }
-
-    public Pair<String, Map<Integer, String>> getSpeedRun(String typ) {
+    public final Pair<String, Map<Integer, String>> getSpeedRun(final String typ)
+    {
         final SpeedRunType type = SpeedRunType.valueOf(typ);
+
         if (SpeedRunner.getInstance().getSpeedRunData(type) != null) {
             return SpeedRunner.getInstance().getSpeedRunData(type);
         }
-        return new Pair<String, Map<Integer, String>>("", new HashMap<Integer, String>());
+
+        return new Pair<>("", new HashMap<>());
     }
 
-    public boolean getSR(Pair<String, Map<Integer, String>> ma, int sel) {
+    public final boolean getSR(final Pair<String, Map<Integer, String>> ma, final int sel)
+    {
         if (ma.getRight().get(sel) == null || ma.getRight().get(sel).length() <= 0) {
-            dispose();
+            this.safeDispose();
             return false;
         }
-        sendOk(ma.getRight().get(sel));
+
+        this.sendOk(ma.getRight().get(sel));
+
         return true;
     }
 
-    public Equip getEquip(int itemid) {
-        return (Equip) MapleItemInformationProvider.getInstance().getEquipById(itemid);
+    public final List<Integer> getAllPotentialInfo()
+    {
+        return new ArrayList<>(MapleItemInformationProvider.getInstance().getAllPotentialInfo().keySet());
     }
 
-    public void setExpiration(Object statsSel, long expire) {
-        if (statsSel instanceof Equip) {
-            ((Equip) statsSel).setExpiration(System.currentTimeMillis() + (expire * 24 * 60 * 60 * 1000));
-        }
-    }
-
-    public void setLock(Object statsSel) {
-        if (statsSel instanceof Equip) {
-            Equip eq = (Equip) statsSel;
-            if (eq.getExpiration() == -1) {
-                eq.setFlag((byte) (eq.getFlag() | ItemFlag.LOCK.getValue()));
-            } else {
-                eq.setFlag((byte) (eq.getFlag() | ItemFlag.UNTRADEABLE.getValue()));
-            }
-        }
-    }
-
-    public boolean addFromDrop(Object statsSel) {
-        if (statsSel instanceof IItem) {
-            final IItem it = (IItem) statsSel;
-            return MapleInventoryManipulator.checkSpace(getClient(), it.getItemId(), it.getQuantity(), it.getOwner()) && MapleInventoryManipulator.addFromDrop(getClient(), it, false);
-        }
-        return false;
-    }
-
-    public boolean replaceItem(int slot, int invType, Object statsSel, int offset, String type) {
-        return replaceItem(slot, invType, statsSel, offset, type, false);
-    }
-
-    public boolean replaceItem(int slot, int invType, Object statsSel, int offset, String type, boolean takeSlot) {
-        MapleInventoryType inv = MapleInventoryType.getByType((byte) invType);
-        if (inv == null) {
-            return false;
-        }
-        IItem item = getPlayer().getInventory(inv).getItem((byte) slot);
-        if (item == null || statsSel instanceof IItem) {
-            item = (IItem) statsSel;
-        }
-        if (offset > 0) {
-            if (inv != MapleInventoryType.EQUIP) {
-                return false;
-            }
-            Equip eq = (Equip) item;
-            if (takeSlot) {
-                if (eq.getUpgradeSlots() < 1) {
-                    return false;
-                } else {
-                    eq.setUpgradeSlots((byte) (eq.getUpgradeSlots() - 1));
-                }
-            }
-            if (type.equalsIgnoreCase("Slots")) {
-                eq.setUpgradeSlots((byte) (eq.getUpgradeSlots() + offset));
-            } else if (type.equalsIgnoreCase("Level")) {
-                eq.setLevel((byte) (eq.getLevel() + offset));
-            } else if (type.equalsIgnoreCase("Hammer")) {
-                eq.setViciousHammer((byte) (eq.getViciousHammer() + offset));
-            } else if (type.equalsIgnoreCase("STR")) {
-                eq.setStr((short) (eq.getStr() + offset));
-            } else if (type.equalsIgnoreCase("DEX")) {
-                eq.setDex((short) (eq.getDex() + offset));
-            } else if (type.equalsIgnoreCase("INT")) {
-                eq.setInt((short) (eq.getInt() + offset));
-            } else if (type.equalsIgnoreCase("LUK")) {
-                eq.setLuk((short) (eq.getLuk() + offset));
-            } else if (type.equalsIgnoreCase("HP")) {
-                eq.setHp((short) (eq.getHp() + offset));
-            } else if (type.equalsIgnoreCase("MP")) {
-                eq.setMp((short) (eq.getMp() + offset));
-            } else if (type.equalsIgnoreCase("WATK")) {
-                eq.setWatk((short) (eq.getWatk() + offset));
-            } else if (type.equalsIgnoreCase("MATK")) {
-                eq.setMatk((short) (eq.getMatk() + offset));
-            } else if (type.equalsIgnoreCase("WDEF")) {
-                eq.setWdef((short) (eq.getWdef() + offset));
-            } else if (type.equalsIgnoreCase("MDEF")) {
-                eq.setMdef((short) (eq.getMdef() + offset));
-            } else if (type.equalsIgnoreCase("ACC")) {
-                eq.setAcc((short) (eq.getAcc() + offset));
-            } else if (type.equalsIgnoreCase("Avoid")) {
-                eq.setAvoid((short) (eq.getAvoid() + offset));
-            } else if (type.equalsIgnoreCase("Hands")) {
-                eq.setHands((short) (eq.getHands() + offset));
-            } else if (type.equalsIgnoreCase("Speed")) {
-                eq.setSpeed((short) (eq.getSpeed() + offset));
-            } else if (type.equalsIgnoreCase("Jump")) {
-                eq.setJump((short) (eq.getJump() + offset));
-            } else if (type.equalsIgnoreCase("ItemEXP")) {
-                eq.setItemEXP(eq.getItemEXP() + offset);
-            } else if (type.equalsIgnoreCase("Expiration")) {
-                eq.setExpiration((long) (eq.getExpiration() + offset));
-            } else if (type.equalsIgnoreCase("Flag")) {
-                eq.setFlag((byte) (eq.getFlag() + offset));
-            }
-            if (eq.getExpiration() == -1) {
-                eq.setFlag((byte) (eq.getFlag() | ItemFlag.LOCK.getValue()));
-            } else {
-                eq.setFlag((byte) (eq.getFlag() | ItemFlag.UNTRADEABLE.getValue()));
-            }
-            item = eq.copy();
-        }
-        MapleInventoryManipulator.removeFromSlot(getClient(), inv, (short) slot, item.getQuantity(), false);
-        return MapleInventoryManipulator.addFromDrop(getClient(), item, false);
-    }
-
-    public boolean replaceItem(int slot, int invType, Object statsSel, int upgradeSlots) {
-        return replaceItem(slot, invType, statsSel, upgradeSlots, "Slots");
-    }
-
-    public boolean isCash(final int itemId) {
-        return MapleItemInformationProvider.getInstance().isCash(itemId);
-    }
-
-    public void buffGuild(final int buff, final int duration, final String msg) {
-        MapleItemInformationProvider ii = MapleItemInformationProvider.getInstance();
-        if (ii.getItemEffect(buff) != null && getPlayer().getGuildId() > 0) {
-            final MapleStatEffect mse = ii.getItemEffect(buff);
-            for (ChannelServer cserv : ChannelServer.getAllInstances()) {
-                for (MapleCharacter chr : cserv.getPlayerStorage().getAllCharacters()) {
-                    if (chr.getGuildId() == getPlayer().getGuildId()) {
-                        mse.applyTo(chr, chr, true, null, duration);
-                        chr.dropMessage(5, "Your guild has gotten a " + msg + " buff.");
-                    }
-                }
-            }
-        }
-    }
-
-    public boolean createAlliance(String alliancename) {
-        MapleParty pt = c.getPlayer().getParty();
-        MapleCharacter otherChar = c.getChannelServer().getPlayerStorage().getCharacterById(pt.getMemberByIndex(1).getId());
-        if (otherChar == null || otherChar.getId() == c.getPlayer().getId()) {
-            return false;
-        }
-        try {
-            return World.Alliance.createAlliance(alliancename, c.getPlayer().getId(), otherChar.getId(), c.getPlayer().getGuildId(), otherChar.getGuildId());
-        } catch (Exception re) {
-            re.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean addCapacityToAlliance() {
-        try {
-            final MapleGuild gs = World.Guild.getGuild(c.getPlayer().getGuildId());
-            if (gs != null && c.getPlayer().getGuildRank() == 1 && c.getPlayer().getAllianceRank() == 1) {
-                if (World.Alliance.getAllianceLeader(gs.getAllianceId()) == c.getPlayer().getId() && World.Alliance.changeAllianceCapacity(gs.getAllianceId())) {
-                    gainMeso(-MapleGuildAlliance.CHANGE_CAPACITY_COST);
-                    return true;
-                }
-            }
-        } catch (Exception re) {
-            re.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean disbandAlliance() {
-        try {
-            final MapleGuild gs = World.Guild.getGuild(c.getPlayer().getGuildId());
-            if (gs != null && c.getPlayer().getGuildRank() == 1 && c.getPlayer().getAllianceRank() == 1) {
-                if (World.Alliance.getAllianceLeader(gs.getAllianceId()) == c.getPlayer().getId() && World.Alliance.disbandAlliance(gs.getAllianceId())) {
-                    return true;
-                }
-            }
-        } catch (Exception re) {
-            re.printStackTrace();
-        }
-        return false;
-    }
-
-    public byte getLastMsg() {
-        return lastMsg;
-    }
-
-    public final void setLastMsg(final byte last) {
-        this.lastMsg = last;
-    }
-    
-    public int getBossLog(String bossid) {
-        return getPlayer().getBossLog(bossid);
-    }
-    public void setBossLog(String bossid) {
-        getPlayer().setBossLog(bossid);
-    }
-    
-    public final void maxAllSkills() {
-        for (ISkill skil : SkillFactory.getAllSkills()) {
-            if (GameConstants.isApplicableSkill(skil.getId())) { //no db/additionals/resistance skills
-                teachSkill(skil.getId(), skil.getMaxLevel(), skil.getMaxLevel());
-            }
-        }
-    }
-
-    public final void resetStats(int str, int dex, int z, int luk) {
-        c.getPlayer().resetStats(str, dex, z, luk);
-    }
-
-    public final boolean dropItem(int slot, int invType, int quantity) {
-        MapleInventoryType inv = MapleInventoryType.getByType((byte) invType);
-        if (inv == null) {
-            return false;
-        }
-        return MapleInventoryManipulator.drop(c, inv, (short) slot, (short) quantity, true);
-    }
-
-    public final List<Integer> getAllPotentialInfo() {
-        return new ArrayList<Integer>(MapleItemInformationProvider.getInstance().getAllPotentialInfo().keySet());
-    }
-
-    public final String getPotentialInfo(final int id) {
+    public final String getPotentialInfo(final int id)
+    {
         final List<StructPotentialItem> potInfo = MapleItemInformationProvider.getInstance().getPotentialInfo(id);
         final StringBuilder builder = new StringBuilder("#b#ePOTENTIAL INFO FOR ID: ");
+
         builder.append(id);
         builder.append("#n#k\r\n\r\n");
+
         int minLevel = 1, maxLevel = 10;
-        for (StructPotentialItem item : potInfo) {
+
+        for (final StructPotentialItem item : potInfo) {
             builder.append("#eLevels ");
             builder.append(minLevel);
             builder.append("~");
             builder.append(maxLevel);
             builder.append(": #n");
             builder.append(item.toString());
+            builder.append("\r\n");
+
             minLevel += 10;
             maxLevel += 10;
-            builder.append("\r\n");
         }
+
         return builder.toString();
     }
 
-    public final void sendRPS() {
-        c.getSession().write(MaplePacketCreator.getRPSMode((byte) 8, -1, -1, -1));
+    public final void sendRPS()
+    {
+        this.writePacket(MaplePacketCreator.getRPSMode((byte) 8, -1, -1, -1));
     }
 
-    public final void setQuestRecord(Object ch, final int questid, final String data) {
-        ((MapleCharacter) ch).getQuestNAdd(MapleQuest.getInstance(questid)).setCustomData(data);
-    }
+    public final void doWeddingEffect(final MapleCharacter chr)
+    {
+        this.getMap().broadcastMessage(MaplePacketCreator.yellowChat(getPlayer().getName() + "，你願意娶 " + chr.getName() + " 作為你的妻子嗎，與她在神聖的婚約中共同生活？無論是疾病或健康、貧窮或富裕、美貌或失色、順利或失意，你都願意愛她、安慰她、尊敬她、保護她？並願意在你們一生之中對她永遠忠心不變？"));
 
-    public final void doWeddingEffect(final Object ch) {
-        final MapleCharacter chr = (MapleCharacter) ch;
-        getMap().broadcastMessage(MaplePacketCreator.yellowChat(getPlayer().getName() + "，你願意娶 " + chr.getName() + " 作為你的妻子嗎，與她在神聖的婚約中共同生活？無論是疾病或健康、貧窮或富裕、美貌或失色、順利或失意，你都願意愛她、安慰她、尊敬她、保護她？並願意在你們一生之中對她永遠忠心不變？ "));
-        CloneTimer.getInstance().schedule(new Runnable() {
-
-            public void run() {
-                if (chr == null || getPlayer() == null) {
-                    warpMap(680000500, 0);
-                } else {
-                    getMap().broadcastMessage(MaplePacketCreator.yellowChat(chr.getName() + "，你願意嫁 " + getPlayer().getName() + " 作為你的丈夫嗎，與他在神聖的婚約中共同生活？無論是疾病或健康、貧窮或富裕、美貌或失色、順利或失意，你都願意愛他、安慰他、尊敬他、保護他？並願意在你們一生之中對他永遠忠心不變？ "));
-                }
+        Timer.CloneTimer.getInstance().schedule(() -> {
+            if (this.getPlayer() == null) {
+                this.warpMap(680000500, 0);
+            } else {
+                this.getMap().broadcastMessage(MaplePacketCreator.yellowChat(chr.getName() + "，你願意嫁 " + getPlayer().getName() + " 作為你的丈夫嗎，與他在神聖的婚約中共同生活？無論是疾病或健康、貧窮或富裕、美貌或失色、順利或失意，你都願意愛他、安慰他、尊敬他、保護他？並願意在你們一生之中對他永遠忠心不變？"));
             }
         }, 10000);
-        CloneTimer.getInstance().schedule(new Runnable() {
 
-            public void run() {
-                if (chr == null || getPlayer() == null) {
-                    if (getPlayer() != null) {
-                        setQuestRecord(getPlayer(), 160001, "3");
-                        setQuestRecord(getPlayer(), 160002, "0");
-                    } else if (chr != null) {
-                        setQuestRecord(chr, 160001, "3");
-                        setQuestRecord(chr, 160002, "0");
-                    }
-                    warpMap(680000500, 0);
+        Timer.CloneTimer.getInstance().schedule(() -> {
+            if (this.getPlayer() == null) {
+                if (this.getPlayer() != null) {
+                    this.setQuestRecord(this.getPlayer(), 160001, "3");
+                    this.setQuestRecord(this.getPlayer(), 160002, "0");
                 } else {
-                    setQuestRecord(getPlayer(), 160001, "2");
-                    setQuestRecord(chr, 160001, "2");
-                    sendNPCText(getPlayer().getName() + " 和 " + chr.getName() + ", 祝福你們在未來的路上永恆不變、幸福美滿!", 9201002);
-                    getMap().startExtendedMapEffect("親吻你的新娘， " + getPlayer().getName() + " !", 5120006);
-                    if (chr.getGuildId() > 0) {
-                        World.Guild.guildPacket(chr.getGuildId(), MaplePacketCreator.sendMarriage(false, chr.getName()));
-                    }
-                    if (chr.getFamilyId() > 0) {
-                        World.Family.familyPacket(chr.getFamilyId(), MaplePacketCreator.sendMarriage(true, chr.getName()), chr.getId());
-                    }
-                    if (getPlayer().getGuildId() > 0) {
-                        World.Guild.guildPacket(getPlayer().getGuildId(), MaplePacketCreator.sendMarriage(false, getPlayer().getName()));
-                    }
-                    if (getPlayer().getFamilyId() > 0) {
-                        World.Family.familyPacket(getPlayer().getFamilyId(), MaplePacketCreator.sendMarriage(true, chr.getName()), getPlayer().getId());
-                    }
+                    this.setQuestRecord(chr, 160001, "3");
+                    this.setQuestRecord(chr, 160002, "0");
+                }
+
+                this.warpMap(680000500, 0);
+            } else {
+                this.setQuestRecord(this.getPlayer(), 160001, "2");
+                this.setQuestRecord(chr, 160001, "2");
+                this.sendNPCText(this.getName() + " 和 " + chr.getName() + ", 祝福你們在未來的路上永恆不變、幸福美滿!", 9201002);
+                this.getMap().startExtendedMapEffect("親吻你的新娘， " + this.getName() + " !", 5120006);
+
+                if (chr.getGuildId() > 0) {
+                    World.Guild.guildPacket(chr.getGuildId(), MaplePacketCreator.sendMarriage(false, chr.getName()));
+                }
+
+                if (chr.getFamilyId() > 0) {
+                    World.Family.familyPacket(chr.getFamilyId(), MaplePacketCreator.sendMarriage(true, chr.getName()), chr.getId());
+                }
+                if (getPlayer().getGuildId() > 0) {
+                    World.Guild.guildPacket(getPlayer().getGuildId(), MaplePacketCreator.sendMarriage(false, this.getName()));
+                }
+
+                if (getPlayer().getFamilyId() > 0) {
+                    World.Family.familyPacket(getPlayer().getFamilyId(), MaplePacketCreator.sendMarriage(true, chr.getName()), this.getPlayer().getId());
                 }
             }
         }, 20000); //10 sec 10 sec
     }
 
-
-    public void 開啟小鋼珠(int type) {
-        c.getSession().write(MaplePacketCreator.openBeans(getPlayer().getBeans(), type));
-    }
-    public void worldMessage(String text) {
-              World.Broadcast.broadcastMessage(MaplePacketCreator.serverNotice(6, text).getBytes());
-            }
-
-    public int getBeans() {
-        return getClient().getPlayer().getBeans();
+    public String getReadableMillis(final long startMillis, final long endMillis)
+    {
+        return StringUtil.getReadableMillis(startMillis, endMillis);
     }
 
-    public void gainBeans(int s) {
-        getPlayer().gainBeans(s);
-        c.getSession().write(MaplePacketCreator.updateBeans(c.getPlayer().getId(), s));
+    public void safeDispose()
+    {
+        this.pendingDisposal = true;
+    }
+
+    public void dispose()
+    {
+        NPCScriptManager.getInstance().dispose(this.getClient());
+    }
+
+    public Invocable getIv()
+    {
+        return this.iv;
+    }
+
+    public int getNpc()
+    {
+        return this.npcId;
+    }
+
+    public int getQuestId()
+    {
+        return this.questId;
+    }
+
+    public byte getType()
+    {
+        return this.type;
+    }
+
+    public final byte getLastMsg()
+    {
+        return this.lastMsg;
+    }
+
+    public final void setLastMsg(final byte last)
+    {
+        this.lastMsg = last;
     }
 }
