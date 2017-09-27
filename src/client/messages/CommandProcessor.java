@@ -65,8 +65,8 @@ public class CommandProcessor {
                                 enabled = true; //Enable all coded commands by default.
                             }
                             if (o instanceof CommandExecute && enabled) {
-                                cL.add(rankNeeded.getCommandPrefix() + c.getSimpleName().toLowerCase());
-                                commands.put(rankNeeded.getCommandPrefix() + c.getSimpleName().toLowerCase(), new CommandObject(rankNeeded.getCommandPrefix() + c.getSimpleName().toLowerCase(), (CommandExecute) o, rankNeeded.getLevel()));
+                                cL.add(rankNeeded.getPrefix() + c.getSimpleName().toLowerCase());
+                                commands.put(rankNeeded.getPrefix() + c.getSimpleName().toLowerCase(), new CommandObject(rankNeeded.getPrefix() + c.getSimpleName().toLowerCase(), (CommandExecute) o, rankNeeded.getLevel()));
                             }
                         }
                     } catch (Exception ex) {
@@ -99,7 +99,7 @@ public class CommandProcessor {
     }
 
     public static boolean processCommand(MapleClient c, String line, CommandType type) {
-        if (line.charAt(0) == PlayerGMRank.NORMAL.getCommandPrefix()) {
+        if (line.charAt(0) == PlayerGMRank.NORMAL.getPrefix()) {
             String[] splitted = line.split(" ");
             splitted[0] = splitted[0].toLowerCase();
 
@@ -120,7 +120,7 @@ public class CommandProcessor {
         }
 
         if (c.getPlayer().getGMLevel() > PlayerGMRank.NORMAL.getLevel()) {
-            if (line.charAt(0) == PlayerGMRank.GM.getCommandPrefix() || line.charAt(0) == PlayerGMRank.ADMIN.getCommandPrefix() || line.charAt(0) == PlayerGMRank.INTERN.getCommandPrefix()) { //Redundant for now, but in case we change symbols later. This will become extensible.
+            if (line.charAt(0) == PlayerGMRank.GM.getPrefix() || line.charAt(0) == PlayerGMRank.ADMIN.getPrefix() || line.charAt(0) == PlayerGMRank.INTERN.getPrefix()) { //Redundant for now, but in case we change symbols later. This will become extensible.
                 String[] splitted = line.split(" ");
                 splitted[0] = splitted[0].toLowerCase();
 

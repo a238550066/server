@@ -258,13 +258,6 @@ public class CashShopOperation
                     doCSPackets(c);
                     return;
                 }
-                for (int i : GameConstants.cashBlock) {
-                    if (item.getId() == i) {
-                        c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(item.getId()));
-                        doCSPackets(c);
-                        return;
-                    }
-                }
                 chr.modifyCSPoints(type, -item.getPrice(), false);
                 IItem itemz = chr.getCashInventory().toItem(item);
                 if (itemz != null && itemz.getUniqueId() > 0 && itemz.getItemId() == item.getId() && itemz.getQuantity() == item.getCount()) {
@@ -297,13 +290,6 @@ public class CashShopOperation
                 doCSPackets(c);
                 return;
             } else {
-                for (int i : GameConstants.cashBlock) {
-                    if (item.getId() == i) {
-                        c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(item.getId()));
-                        doCSPackets(c);
-                        return;
-                    }
-                }
                 c.getPlayer().getCashInventory().gift(info.getLeft().intValue(), c.getPlayer().getName(), msg, item.getSN(), MapleInventoryIdentifier.getInstance());
                 c.getPlayer().modifyCSPoints(1, -item.getPrice(), false);
                 c.getSession().write(MTSCSPacket.sendGift(item.getPrice(), item.getId(), item.getCount(), partnerName ,action==4?false:true));
@@ -441,13 +427,6 @@ public class CashShopOperation
                 doCSPackets(c);
                 return;
             }
-            for (int i : GameConstants.cashBlock) { //just incase hacker
-                if (item.getId() == i) {
-                    c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(item.getId()));
-                    doCSPackets(c);
-                    return;
-                }
-            }
             Pair<Integer, Pair<Integer, Integer>> info = MapleCharacterUtil.getInfoByName(partnerName, c.getPlayer().getWorld());
             if (info == null || info.getLeft().intValue() <= 0 || info.getLeft().intValue() == c.getPlayer().getId()) {
                 c.getSession().write(MTSCSPacket.sendCSFail(0xB4)); //9E v75
@@ -496,20 +475,8 @@ public class CashShopOperation
                 doCSPackets(c);
                 return;
             }
-            for (int iz : GameConstants.cashBlock) {
-                if (item.getId() == iz) {
-                    c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(item.getId()));
-                    doCSPackets(c);
-                    return;
-                }
-            }
             Map<Integer, IItem> ccz = new HashMap<Integer, IItem>();
             for (CashItemInfo i : ccc) {
-                for (int iz : GameConstants.cashBlock) {
-                    if (i.getId() == iz) {
-                        continue;
-                    }
-                }
                 IItem itemz = c.getPlayer().getCashInventory().toItem(i);
                 if (itemz == null || itemz.getUniqueId() <= 0 || itemz.getItemId() != i.getId()) {
                     continue;
@@ -534,13 +501,6 @@ public class CashShopOperation
                 c.getSession().write(MTSCSPacket.sendCSFail(0xB1));
                 doCSPackets(c);
                 return;
-            }
-            for (int iz : GameConstants.cashBlock) {
-                if (item.getId() == iz) {
-                    c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(item.getId()));
-                    doCSPackets(c);
-                    return;
-                }
             }
             byte pos = MapleInventoryManipulator.addId(c, item.getId(), (short) item.getCount(), null);
             if (pos < 0) {
@@ -569,13 +529,6 @@ public class CashShopOperation
                 c.getSession().write(MTSCSPacket.sendCSFail(0));
                 doCSPackets(c);
                 return;
-            }
-            for (int i : GameConstants.cashBlock) {
-                if (rewardItem.getId() == i) {
-                    c.getPlayer().dropMessage(1, GameConstants.getCashBlockedMsg(rewardItem.getId()));
-                    doCSPackets(c);
-                    return;
-                }
             }
 
             IItem itemz = c.getPlayer().getCashInventory().toItem(rewardItem);

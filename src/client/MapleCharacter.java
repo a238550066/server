@@ -149,9 +149,8 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     private transient Set<MapleMapObject> visibleMapObjects;
     private transient ReentrantReadWriteLock visibleMapObjectsLock;
     private Map<MapleQuest, MapleQuestStatus> quests;
-    private Map<Integer, String> questinfo;
-    private Map<ISkill, SkillEntry> skills = new LinkedHashMap<ISkill, SkillEntry>();
-    private transient Map<MapleBuffStat, MapleBuffStatValueHolder> effects = new ConcurrentEnumMap<MapleBuffStat, MapleBuffStatValueHolder>(MapleBuffStat.class);
+    private Map<ISkill, SkillEntry> skills = new LinkedHashMap<>();
+    private transient Map<MapleBuffStat, MapleBuffStatValueHolder> effects = new ConcurrentEnumMap<>(MapleBuffStat.class);
     private transient Map<Integer, MapleSummon> summons;
     private transient Map<Integer, MapleCoolDownValueHolder> coolDowns = new LinkedHashMap<Integer, MapleCoolDownValueHolder>();
     private transient Map<MapleDisease, MapleDiseaseValueHolder> diseases = new ConcurrentEnumMap<MapleDisease, MapleDiseaseValueHolder>(MapleDisease.class);
@@ -236,7 +235,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             for (int i = 0; i < SavedLocationType.values().length; i++) {
                 savedLocations[i] = -1;
             }
-            questinfo = new LinkedHashMap<Integer, String>();
             anticheat = new CheatTracker(this);
             pets = new ArrayList<MaplePet>();
         }
@@ -398,7 +396,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             questStatusFrom = (MapleQuestStatus) qs.getValue();
 
             questStatus = new MapleQuestStatus(quest, questStatusFrom.getStatus());
-            questStatus.setCustomData(questStatusFrom.getCustomData());
+            questStatus.setData(questStatusFrom.getData());
             questStatus.setCompletionTime(questStatusFrom.getCompletionTime());
 
             if (questStatusFrom.getMobKills() != null) {
@@ -420,7 +418,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         ret.skillMacros = (SkillMacro[]) ct.skillmacro;
         ret.petStore = ct.petStore;
         ret.keylayout = new MapleKeyLayout(ct.keymap);
-        ret.questinfo = ct.InfoQuest;
         ret.savedLocations = ct.savedlocation;
         ret.wishlist = ct.wishlist;
         ret.rocks = ct.rocks;
@@ -437,7 +434,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         ret.acash = ct.ACash;
         ret.maplepoints = ct.MaplePoints;
         ret.numClones = ct.clonez;
-        ret.mount = new MapleMount(ret, ct.mount_itemid, GameConstants.isKOC(ret.job) ? 10001004 : (GameConstants.isAran(ret.job) ? 20001004 : (GameConstants.isEvan(ret.job) ? 20011004 : 1004)), ct.mount_Fatigue, ct.mount_level, ct.mount_exp);
+        ret.mount = new MapleMount(ret, ct.mount_itemid, GameConstants.isKOC(ret.job) ? 10001004 : (GameConstants.isAran(ret.job) ? 20001004 : 1004), ct.mount_Fatigue, ct.mount_level, ct.mount_exp);
 
         ret.stats.recalcLocalStats(true);
 
@@ -575,14 +572,10 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 final MapleQuestStatus status = new MapleQuestStatus(quest, rs.getByte("status"));
 
                 status.setInfo(rs.getString("info"));
-                status.setCustomData(rs.getString("custom_data"));
                 status.setCompletionTime(DateTimeUtil.toTimestamp(rs.getString("updated_at")));
+                status.setData(rs.getString("data"));
 
                 ret.quests.put(quest, status);
-
-                if (rs.getString("custom_info_data") != null) {
-                    ret.questinfo.put(rs.getInt("quest_id"), rs.getString("custom_info_data"));
-                }
 
                 pse.setInt(1, rs.getInt("quest_id"));
 
@@ -695,7 +688,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                         ret.setQuestAdd(MapleQuest.getInstance(170000), (byte) 0, null); //set it so never again
                     }
                 }
-                ret.skills.put(SkillFactory.getSkill(GameConstants.getBOF_ForJob(ret.job)), new SkillEntry(maxlevel_, (byte) 0, -1));
+                ret.skills.put(SkillFactory.getSkill(GameConstants.getBOFForJob(ret.job)), new SkillEntry(maxlevel_, (byte) 0, -1));
                 ps.close();
                 rs.close();
                 // END
@@ -889,16 +882,16 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             rs.close();
 
             final String now = DateTimeUtil.now();
-            ps = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `custom_data`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            ps = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `data`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             pse = con.prepareStatement("INSERT INTO `quest_mobs` VALUES (?, ?, ?, ?, ?)");
             ps.setInt(1, chr.id);
             for (final MapleQuestStatus q : chr.quests.values()) {
                 ps.setInt(2, q.getQuest().getId());
                 ps.setInt(3, q.getStatus());
                 ps.setString(4, q.getInfo());
-                ps.setString(5, now);
-                ps.setString(6, DateTimeUtil.now(q.getCompletionTime()));
-                ps.setString(7, q.getCustomData());
+                ps.setString(5, q.getData());
+                ps.setString(6, now);
+                ps.setString(7, DateTimeUtil.now(q.getCompletionTime()));
                 ps.executeUpdate();
                 rs = ps.getGeneratedKeys();
                 rs.next();
@@ -1294,8 +1287,8 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             final Connection con = DatabaseConnection.getConnection();
 
             final PreparedStatement psQuery = con.prepareStatement("SELECT `id` FROM `quest_status` WHERE `character_id` = ? AND `quest_id` = ?");
-            final PreparedStatement psInsert = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `custom_data`, `custom_info_data`, `forfeited`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-            final PreparedStatement psUpdate = con.prepareStatement("UPDATE `quest_status` SET `status` = ?, `info` = ?, `custom_data` = ?, `custom_info_data` = ?, `forfeited` = ?, `updated_at` = ? WHERE `id` = ?");
+            final PreparedStatement psInsert = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `data`, `forfeited`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            final PreparedStatement psUpdate = con.prepareStatement("UPDATE `quest_status` SET `status` = ?, `info` = ?, `data` = ?, `forfeited` = ?, `updated_at` = ? WHERE `id` = ?");
             final PreparedStatement psMobQuery = con.prepareStatement("SELECT `id` FROM `quest_mobs` WHERE `quest_status_id` = ? AND `mob_id` = ?");
             final PreparedStatement psMobInsert = con.prepareStatement("INSERT INTO `quest_mobs` (`quest_status_id`, `mob_id`, `count`, `created_at`, `updated_at`) VALUES  (?, ?, ?, ?, ?)");
             final PreparedStatement psMobUpdate = con.prepareStatement("UPDATE `quest_mobs` SET `count` = ?, `updated_at` = ? WHERE `quest_status_id` = ? AND `mob_id` = ?");
@@ -1314,11 +1307,10 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
                     psUpdate.setInt(1, status.getStatus());
                     psUpdate.setString(2, status.getInfo());
-                    psUpdate.setString(3, status.getCustomData());
-                    psUpdate.setString(4, this.questinfo.get(questId));
-                    psUpdate.setInt(5, status.getForfeited());
-                    psUpdate.setString(6, now);
-                    psUpdate.setInt(7, id);
+                    psUpdate.setString(3, status.getData());
+                    psUpdate.setInt(4, status.getForfeited());
+                    psUpdate.setString(5, now);
+                    psUpdate.setInt(6, id);
                     psUpdate.executeUpdate();
                 } else {
                     rs.close();
@@ -1327,11 +1319,10 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                     psInsert.setInt(2, questId);
                     psInsert.setInt(3, status.getStatus());
                     psInsert.setString(4, status.getInfo());
-                    psInsert.setString(5, status.getCustomData());
-                    psInsert.setString(6, this.questinfo.get(questId));
-                    psInsert.setInt(7, status.getForfeited());
+                    psInsert.setString(5, status.getData());
+                    psInsert.setInt(6, status.getForfeited());
+                    psInsert.setString(7, now);
                     psInsert.setString(8, now);
-                    psInsert.setString(9, now);
                     psInsert.executeUpdate();
 
                     rs = psInsert.getGeneratedKeys();
@@ -1414,24 +1405,48 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return CRand;
     }
 
-    public final void QuestInfoPacket(final tools.data.output.MaplePacketLittleEndianWriter mplew) {
-        mplew.writeShort(questinfo.size());
+    public void questDataPacket(final tools.data.output.MaplePacketLittleEndianWriter mplew)
+    {
+        final List<Pair<Integer, String>> data = new LinkedList<>();
 
-        for (final Entry<Integer, String> q : questinfo.entrySet()) {
-            mplew.writeShort(q.getKey());
-            mplew.writeMapleAsciiString(q.getValue() == null ? "" : q.getValue());
+        int size = 0;
+
+        for (final MapleQuestStatus status : this.quests.values()) {
+            if (status.getData() != null) {
+                data.add(new Pair<>(status.getQuest().getId(), status.getData()));
+                size++;
+            }
+        }
+
+        mplew.writeShort(size);
+
+        for (final Pair<Integer, String> datum : data) {
+            mplew.writeShort(datum.getLeft());
+            mplew.writeMapleAsciiString(datum.getRight());
         }
     }
 
-    public final void updateInfoQuest(final int questid, final String data) {
-        questinfo.put(questid, data);
-        client.getSession().write(MaplePacketCreator.updateInfoQuest(questid, data));
+    public final void updateQuestData(final int questId, final String data)
+    {
+        for (final Map.Entry<MapleQuest, MapleQuestStatus> quest : this.quests.entrySet()) {
+            if (quest.getKey().getId() == questId) {
+                quest.getValue().setData(data);
+
+                this.client.getSession().write(MaplePacketCreator.updateInfoQuest(questId, data));
+
+                break;
+            }
+        }
     }
 
-    public final String getInfoQuest(final int questid) {
-        if (questinfo.containsKey(questid)) {
-            return questinfo.get(questid);
+    public final String getQuestData(final int questId)
+    {
+        for (final Map.Entry<MapleQuest, MapleQuestStatus> quest : this.quests.entrySet()) {
+            if (quest.getKey().getId() == questId) {
+                return quest.getValue().getData();
+            }
         }
+
         return "";
     }
 
@@ -1465,12 +1480,12 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     public final void setQuestAdd(final MapleQuest quest, final byte status, final String customData) {
         if (!quests.containsKey(quest)) {
             final MapleQuestStatus stat = new MapleQuestStatus(quest, status);
-            stat.setCustomData(customData);
+            stat.setData(customData);
             quests.put(quest, stat);
         }
     }
 
-    public final MapleQuestStatus getQuestOrAdd(final MapleQuest quest) {
+    public final MapleQuestStatus getOrAddQuest(final MapleQuest quest) {
         if (!quests.containsKey(quest)) {
             final MapleQuestStatus status = new MapleQuestStatus(quest, (byte) 0);
             quests.put(quest, status);
@@ -1495,12 +1510,8 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         this.client.getSession().write(MaplePacketCreator.updateQuest(quest));
 
         if (quest.getStatus() == 1 && !update) {
-            client.getSession().write(MaplePacketCreator.updateQuestInfo(this, quest.getQuest().getId(), quest.getNpc(), (byte) 8));
+            client.getSession().write(MaplePacketCreator.updateQuestInfo(quest.getQuest().getId(), quest.getNpc(), (byte) 8));
         }
-    }
-
-    public final Map<Integer, String> getInfoQuest_Map() {
-        return questinfo;
     }
 
     public final Map<MapleQuest, MapleQuestStatus> getQuest_Map() {
@@ -2476,37 +2487,20 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
     public void changeJob(int newJob) {
         try {
-            final boolean isEv = GameConstants.isEvan(job) || GameConstants.isResist(job);
             this.job = (short) newJob;
             if (newJob != 0 && newJob != 1000 && newJob != 2000 && newJob != 2001 && newJob != 3000) {
-                if (isEv) {
-                    remainingSp[GameConstants.getSkillBook(newJob)] += 5;
-                    client.getSession().write(UIPacket.getSPMsg((byte) 5, (short) newJob));
-                } else {
-                    remainingSp[GameConstants.getSkillBook(newJob)]++;
-                    if (newJob % 10 >= 2) {
-                        remainingSp[GameConstants.getSkillBook(newJob)] += 2;
-                    }
+                remainingSp[GameConstants.getSkillBook(newJob)]++;
+                if (newJob % 10 >= 2) {
+                    remainingSp[GameConstants.getSkillBook(newJob)] += 2;
                 }
             }
             if (newJob > 0 && !isGM()) {
                 resetStatsByJob(true);
-                if (!GameConstants.isEvan(newJob)) {
-                    if (getLevel() > (newJob == 200 ? 8 : 10) && newJob % 100 == 0 && (newJob % 1000) / 100 > 0) { //first job
-                        remainingSp[GameConstants.getSkillBook(newJob)] += 3 * (getLevel() - (newJob == 200 ? 8 : 10));
-                    }
-                } else if (newJob == 2200) {
-                    MapleQuest.getInstance(22100).forceStart(this, 0, null);
-                    MapleQuest.getInstance(22100).forceComplete(this, 0);
-                    expandInventory((byte) 1, 4);
-                    expandInventory((byte) 2, 4);
-                    expandInventory((byte) 3, 4);
-                    expandInventory((byte) 4, 4);
-                    client.getSession().write(MaplePacketCreator.getEvanTutorial("UI/tutorial/evan/14/0"));
-                    dropMessage(5, "The baby Dragon hatched and appears to have something to tell you. Click the baby Dragon to start a conversation.");
+                if (getLevel() > (newJob == 200 ? 8 : 10) && newJob % 100 == 0 && (newJob % 1000) / 100 > 0) { //first job
+                    remainingSp[GameConstants.getSkillBook(newJob)] += 3 * (getLevel() - (newJob == 200 ? 8 : 10));
                 }
             }
-            client.getSession().write(MaplePacketCreator.updateSp(this, false, isEv));
+            client.getSession().write(MaplePacketCreator.updateSp(this, false, false));
             updateSingleStat(MapleStat.JOB, newJob);
 
             int maxhp = stats.getMaxHp(), maxmp = stats.getMaxMp();
@@ -2667,7 +2661,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     }
 
     public void changeSkillLevel(final ISkill skill, byte newLevel, byte newMasterlevel, long expiration) {
-        if (skill == null || (!GameConstants.isApplicableSkill(skill.getId()) && !GameConstants.isApplicableSkill_(skill.getId()))) {
+        if (skill == null || (!GameConstants.isApplicableSkill(skill.getId()))) {
             return;
         }
         client.getSession().write(MaplePacketCreator.updateSkill(skill.getId(), newLevel, newMasterlevel, expiration));
@@ -2682,7 +2676,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         }
         if (GameConstants.isRecoveryIncSkill(skill.getId())) {
             stats.relocHeal();
-        } else if (GameConstants.isElementAmp_Skill(skill.getId())) {
+        } else if (GameConstants.isElementAmpSkill(skill.getId())) {
             stats.recalcLocalStats();
         }
 
@@ -3423,27 +3417,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         }
         if (GameConstants.isKOC(job) && level == 70) {
             client.getSession().write(MaplePacketCreator.startMapEffect("You have reached level 70! To job advance, talk to your job instructor in Erev.", 5120000, true));
-        }
-        if (GameConstants.isEvan(job)) {
-            switch (level) {
-                case 9:
-                    client.getSession().write(MaplePacketCreator.startMapEffect("請確保您完成所有的任務需要達到10級之前，否則你將無法繼續.", 5120000, true));
-                    break;
-                case 10:
-                case 20:
-                case 30:
-                case 40:
-                case 50:
-                case 60:
-                case 80:
-                case 100:
-                case 120:
-                case 160:
-                    if (job < 2218) {
-                        changeJob(job == 2001 ? 2200 : (job == 2200 ? 2210 : (job + 1))); //automatic
-                    }
-                    break;
-            }
         }
         /*        if (getSubcategory() == 1) { //db level 2
          switch (level) {
@@ -5041,10 +5014,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                             leadSkillId = 10000018;
                         } else if (GameConstants.isAran(getJob())) {
                             leadSkillId = 20000024;
-                        } else if (GameConstants.isEvan(getJob())) {
-                            leadSkillId = 20010024;
-                        } else if (GameConstants.isResist(getJob())) {
-                            leadSkillId = 30000024;
                         }
 
                         // 如果沒有「寵物達人」的技能，則將已召喚的寵物收回
@@ -5208,7 +5177,6 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         }
         ret.skillMacros = skillMacros;
         ret.keylayout = keylayout;
-        ret.questinfo = questinfo;
         ret.savedLocations = savedLocations;
         ret.wishlist = wishlist;
         ret.rocks = rocks;
@@ -5480,24 +5448,24 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     // TODO: gvup, vic, lose, draw, VR
     public boolean startPartyQuest(final int questid) {
         boolean ret = false;
-        if (!quests.containsKey(MapleQuest.getInstance(questid)) || !questinfo.containsKey(questid)) {
-            final MapleQuestStatus status = getQuestOrAdd(MapleQuest.getInstance(questid));
+        if (!quests.containsKey(MapleQuest.getInstance(questid))) {
+            final MapleQuestStatus status = getOrAddQuest(MapleQuest.getInstance(questid));
             status.setStatus((byte) 1);
             updateQuest(status);
             switch (questid) {
                 case 1300:
                 case 1301:
                 case 1302: //carnival, ariants.
-                    updateInfoQuest(questid, "min=0;sec=0;date=0000-00-00;have=0;rank=F;try=0;cmp=0;CR=0;VR=0;gvup=0;vic=0;lose=0;draw=0");
+                    updateQuestData(questid, "min=0;sec=0;date=0000-00-00;have=0;rank=F;try=0;cmp=0;CR=0;VR=0;gvup=0;vic=0;lose=0;draw=0");
                     break;
                 case 1204: //herb town pq
-                    updateInfoQuest(questid, "min=0;sec=0;date=0000-00-00;have0=0;have1=0;have2=0;have3=0;rank=F;try=0;cmp=0;CR=0;VR=0");
+                    updateQuestData(questid, "min=0;sec=0;date=0000-00-00;have0=0;have1=0;have2=0;have3=0;rank=F;try=0;cmp=0;CR=0;VR=0");
                     break;
                 case 1206: //ellin pq
-                    updateInfoQuest(questid, "min=0;sec=0;date=0000-00-00;have0=0;have1=0;rank=F;try=0;cmp=0;CR=0;VR=0");
+                    updateQuestData(questid, "min=0;sec=0;date=0000-00-00;have0=0;have1=0;rank=F;try=0;cmp=0;CR=0;VR=0");
                     break;
                 default:
-                    updateInfoQuest(questid, "min=0;sec=0;date=0000-00-00;have=0;rank=F;try=0;cmp=0;CR=0;VR=0");
+                    updateQuestData(questid, "min=0;sec=0;date=0000-00-00;have=0;rank=F;try=0;cmp=0;CR=0;VR=0");
                     break;
             }
             ret = true;
@@ -5505,69 +5473,99 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         return ret;
     }
 
-    public String getOneInfo(final int questid, final String key) {
-        if (!questinfo.containsKey(questid) || key == null) {
+    private String getOneInfo(final int questId, final String key)
+    {
+        if (key == null) {
             return null;
         }
-        final String[] split = questinfo.get(questid).split(";");
-        for (String x : split) {
-            final String[] split2 = x.split("="); //should be only 2
-            if (split2.length == 2 && split2[0].equals(key)) {
-                return split2[1];
+
+        for (final Map.Entry<MapleQuest, MapleQuestStatus> quest : this.quests.entrySet()) {
+            if (questId == quest.getKey().getId()) {
+                for (final String x : quest.getValue().getData().split(";")) {
+                    final String[] split = x.split("="); //should be only 2
+
+                    if (split.length == 2 && split[0].equals(key)) {
+                        return split[1];
+                    }
+                }
+
+                return null;
             }
         }
+
         return null;
     }
 
-    public void updateOneInfo(final int questid, final String key, final String value) {
-        if (!questinfo.containsKey(questid) || key == null || value == null) {
+    private void updateOneInfo(final int questId, final String key, final String value)
+    {
+        if (key == null || value == null) {
             return;
         }
-        final String[] split = questinfo.get(questid).split(";");
-        boolean changed = false;
-        final StringBuilder newQuest = new StringBuilder();
-        for (String x : split) {
-            final String[] split2 = x.split("="); //should be only 2
-            if (split2.length != 2) {
-                continue;
-            }
-            if (split2[0].equals(key)) {
-                newQuest.append(key).append("=").append(value);
-            } else {
-                newQuest.append(x);
-            }
-            newQuest.append(";");
-            changed = true;
-        }
 
-        updateInfoQuest(questid, changed ? newQuest.toString().substring(0, newQuest.toString().length() - 1) : newQuest.toString());
+        for (final Map.Entry<MapleQuest, MapleQuestStatus> quest : this.quests.entrySet()) {
+            if (questId == quest.getKey().getId()) {
+                final StringBuilder newQuest = new StringBuilder();
+
+                boolean changed = false;
+
+                for (final String x : quest.getValue().getData().split(";")) {
+                    final String[] split = x.split("="); //should be only 2
+
+                    if (split.length != 2) {
+                        continue;
+                    }
+
+                    if (split[0].equals(key)) {
+                        newQuest.append(key).append("=").append(value);
+                    } else {
+                        newQuest.append(x);
+                    }
+
+                    newQuest.append(";");
+
+                    changed = true;
+                }
+
+                this.updateQuestData(questId, changed ? newQuest.toString().substring(0, newQuest.toString().length() - 1) : newQuest.toString());
+
+                break;
+            }
+        }
     }
 
-    public void recalcPartyQuestRank(final int questid) {
-        if (!startPartyQuest(questid)) {
-            final String oldRank = getOneInfo(questid, "rank");
+    private void recalcPartyQuestRank(final int questId) {
+        if (!startPartyQuest(questId)) {
+            final String oldRank = this.getOneInfo(questId, "rank");
+
             if (oldRank == null || oldRank.equals("S")) {
                 return;
             }
-            final String[] split = questinfo.get(questid).split(";");
-            String newRank = null;
-            if (oldRank.equals("A")) {
-                newRank = "S";
-            } else if (oldRank.equals("B")) {
-                newRank = "A";
-            } else if (oldRank.equals("C")) {
-                newRank = "B";
-            } else if (oldRank.equals("D")) {
-                newRank = "C";
-            } else if (oldRank.equals("F")) {
-                newRank = "D";
-            } else {
-                return;
+
+            final String newRank;
+
+            switch (oldRank) {
+                case "A":
+                    newRank = "S";
+                    break;
+                case "B":
+                    newRank = "A";
+                    break;
+                case "C":
+                    newRank = "B";
+                    break;
+                case "D":
+                    newRank = "C";
+                    break;
+                case "F":
+                    newRank = "D";
+                    break;
+                default:
+                    return;
             }
-            final List<Pair<String, Pair<String, Integer>>> questInfo = MapleQuest.getInstance(questid).getInfoByRank(newRank);
-            for (Pair<String, Pair<String, Integer>> q : questInfo) {
+
+            for (final Pair<String, Pair<String, Integer>> q : MapleQuest.getInstance(questId).getInfoByRank(newRank)) {
                 boolean found = false;
-                final String val = getOneInfo(questid, q.right.left);
+                final String val = getOneInfo(questId, q.right.left);
                 if (val == null) {
                     return;
                 }
@@ -5589,7 +5587,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 }
             }
             //perfectly safe
-            updateOneInfo(questid, "rank", newRank);
+            updateOneInfo(questId, "rank", newRank);
         }
     }
 
@@ -5749,16 +5747,16 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
     }
 
     public boolean canUseFamilyBuff(MapleFamilyBuffEntry buff) {
-        final MapleQuestStatus stat = getQuestOrAdd(MapleQuest.getInstance(buff.questID));
-        if (stat.getCustomData() == null) {
-            stat.setCustomData("0");
+        final MapleQuestStatus stat = getOrAddQuest(MapleQuest.getInstance(buff.questID));
+        if (stat.getData() == null) {
+            stat.setData("0");
         }
-        return Long.parseLong(stat.getCustomData()) + (24 * 3600000) < System.currentTimeMillis();
+        return Long.parseLong(stat.getData()) + (24 * 3600000) < System.currentTimeMillis();
     }
 
     public void useFamilyBuff(MapleFamilyBuffEntry buff) {
-        final MapleQuestStatus stat = getQuestOrAdd(MapleQuest.getInstance(buff.questID));
-        stat.setCustomData(String.valueOf(System.currentTimeMillis()));
+        final MapleQuestStatus stat = getOrAddQuest(MapleQuest.getInstance(buff.questID));
+        stat.setData(String.valueOf(System.currentTimeMillis()));
     }
 
     public List<Pair<Integer, Integer>> usedBuffs() {

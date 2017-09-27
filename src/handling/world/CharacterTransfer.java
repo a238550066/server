@@ -161,8 +161,6 @@ public class CharacterTransfer implements Externalizable {
         this.dojo = chr.getDojo();
         this.dojoRecord = (byte) chr.getDojoRecord();
 
-        this.InfoQuest = chr.getInfoQuest_Map();
-
         for (final Map.Entry<MapleQuest, MapleQuestStatus> qs : chr.getQuest_Map().entrySet()) {
             this.Quest.put(qs.getKey().getId(), qs.getValue());
         }

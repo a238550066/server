@@ -359,10 +359,6 @@ public class ItemMakerHandler {
             return c.getPlayer().getSkillLevel(SkillFactory.getSkill(10001007)) >= reqlvl;
         } else if (GameConstants.isAran(c.getPlayer().getJob())) { // KoC Maker skill.
             return c.getPlayer().getSkillLevel(SkillFactory.getSkill(20001007)) >= reqlvl;
-        } else if (GameConstants.isEvan(c.getPlayer().getJob())) { // KoC Maker skill.
-            return c.getPlayer().getSkillLevel(SkillFactory.getSkill(20011007)) >= reqlvl;
-        } else if (GameConstants.isResist(c.getPlayer().getJob())) { // KoC Maker skill.
-            return c.getPlayer().getSkillLevel(SkillFactory.getSkill(30001007)) >= reqlvl;
         } else {
             return c.getPlayer().getSkillLevel(SkillFactory.getSkill(1007)) >= reqlvl;
         }

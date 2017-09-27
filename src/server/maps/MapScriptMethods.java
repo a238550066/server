@@ -617,6 +617,9 @@ public class MapScriptMethods {
                     c.getSession().write(UIPacket.IntroLock(false));
                     c.getSession().write(MaplePacketCreator.enableActions());
                     c.getSession().write(UIPacket.MapNameDisplay(c.getPlayer().getMapId()));
+                    if (c.getPlayer().getMapId() > 1) {
+                        break;
+                    }
                 } else {
                     // @todo tofix
                     break;
@@ -644,16 +647,16 @@ public class MapScriptMethods {
                         for (int i = 0; i < m.maps.length; i++) {
                             sb.append("0");
                         }
-                        c.getPlayer().updateInfoQuest(m.questId - 2005, sb.toString());
+                        c.getPlayer().updateQuestData(m.questId - 2005, sb.toString());
                         MapleQuest.getInstance(m.questId - 1995).forceStart(c.getPlayer(), 0, "0");
                     }
 
-                    final String quest = c.getPlayer().getInfoQuest(m.questId - 2005);
-                    final MapleQuestStatus stat = c.getPlayer().getQuestOrAdd(MapleQuest.getInstance(m.questId - 1995));
-                    if (stat.getCustomData() == null) { //just a check.
-                        stat.setCustomData("0");
+                    final String quest = c.getPlayer().getQuestData(m.questId - 2005);
+                    final MapleQuestStatus stat = c.getPlayer().getOrAddQuest(MapleQuest.getInstance(m.questId - 1995));
+                    if (stat.getData() == null) { //just a check.
+                        stat.setData("0");
                     }
-                    int number = Integer.parseInt(stat.getCustomData());
+                    int number = Integer.parseInt(stat.getData());
                     final StringBuilder sb = new StringBuilder("enter=");
                     boolean changedd = false;
                     for (int i = 0; i < m.maps.length; i++) {
@@ -671,7 +674,7 @@ public class MapScriptMethods {
                     }
                     if (changedd) {
                         number++;
-                        c.getPlayer().updateInfoQuest(m.questId - 2005, sb.toString());
+                        c.getPlayer().updateQuestData(m.questId - 2005, sb.toString());
                         MapleQuest.getInstance(m.questId - 1995).forceStart(c.getPlayer(), 0, String.valueOf(number));
                         c.getPlayer().dropMessage(-1, "訪問 " + number + "/" + m.maps.length + " 個地區.");
                         c.getPlayer().dropMessage(-1, "稱號 " + String.valueOf(m) + " 已完成了");
@@ -768,15 +771,15 @@ public class MapScriptMethods {
                 break;
             }
             case rienArrow: {
-                if (c.getPlayer().getInfoQuest(21019).equals("miss=o;helper=clear")) {
-                    c.getPlayer().updateInfoQuest(21019, "miss=o;arr=o;helper=clear");
+                if (c.getPlayer().getQuestData(21019).equals("miss=o;helper=clear")) {
+                    c.getPlayer().updateQuestData(21019, "miss=o;arr=o;helper=clear");
                     c.getSession().write(UIPacket.AranTutInstructionalBalloon("Effect/OnUserEff.img/guideEffect/aranTutorial/tutorialArrow3"));
                 }
                 break;
             }
             case rien: {
-                if (c.getPlayer().getQuestStatus(21101) == 2 && c.getPlayer().getInfoQuest(21019).equals("miss=o;arr=o;helper=clear")) {
-                    c.getPlayer().updateInfoQuest(21019, "miss=o;arr=o;ck=1;helper=clear");
+                if (c.getPlayer().getQuestStatus(21101) == 2 && c.getPlayer().getQuestData(21019).equals("miss=o;arr=o;helper=clear")) {
+                    c.getPlayer().updateQuestData(21019, "miss=o;arr=o;ck=1;helper=clear");
                 }
                 c.getSession().write(UIPacket.IntroDisableUI(false));
                 c.getSession().write(UIPacket.IntroLock(false));

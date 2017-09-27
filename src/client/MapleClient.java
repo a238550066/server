@@ -732,14 +732,14 @@ public class MapleClient implements Serializable {
             player.cancelAllDebuffs();
 //			player.cancelAllTimers();
             if (player.getMarriageId() > 0) {
-                final MapleQuestStatus stat1 = player.getQuestOrAdd(MapleQuest.getInstance(160001));
-                final MapleQuestStatus stat2 = player.getQuestOrAdd(MapleQuest.getInstance(160002));
-                if (stat1.getCustomData() != null && (stat1.getCustomData().equals("2_") || stat1.getCustomData().equals("2"))) {
+                final MapleQuestStatus stat1 = player.getOrAddQuest(MapleQuest.getInstance(160001));
+                final MapleQuestStatus stat2 = player.getOrAddQuest(MapleQuest.getInstance(160002));
+                if (stat1.getData() != null && (stat1.getData().equals("2_") || stat1.getData().equals("2"))) {
                     //dc in process of marriage
-                    if (stat2.getCustomData() != null) {
-                        stat2.setCustomData("0");
+                    if (stat2.getData() != null) {
+                        stat2.setData("0");
                     }
-                    stat1.setCustomData("3");
+                    stat1.setData("3");
                 }
             }
             player.changeRemoval(true);

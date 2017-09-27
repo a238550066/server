@@ -195,15 +195,15 @@ public class Event_PyramidSubway {
     }
 
     public final void succeed(final MapleCharacter c) {
-        final MapleQuestStatus record = c.getQuestOrAdd(MapleQuest.getInstance(type == -1 ? 7662 : 7760));
-        String data = record.getCustomData();
+        final MapleQuestStatus record = c.getOrAddQuest(MapleQuest.getInstance(type == -1 ? 7662 : 7760));
+        String data = record.getData();
         if (data == null) {
-            record.setCustomData("0");
-            data = record.getCustomData();
+            record.setData("0");
+            data = record.getData();
         }
         final int mons = Integer.parseInt(data);
         final int tk = kill + cool;
-        record.setCustomData(String.valueOf(mons + tk));
+        record.setData(String.valueOf(mons + tk));
         byte rank = 4;
         if (type == -1) {
             if (tk >= 2000) {

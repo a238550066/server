@@ -35,7 +35,8 @@ public class MapleQuestStatus
     private int npc;
     private long completionTime;
     private Map<Integer, Integer> killedMobs = null;
-    private String customData;
+    private String data;
+    private boolean changed = false;
 
     public MapleQuestStatus(final MapleQuest quest, final byte status)
     {
@@ -43,10 +44,8 @@ public class MapleQuestStatus
         this.setStatus(status);
         this.completionTime = System.currentTimeMillis();
 
-        if (status == 1) { // Started
-            if (!quest.getRelevantMobs().isEmpty()) {
-                registerMobs();
-            }
+        if (status == 1 && !quest.getRelevantMobs().isEmpty()) {
+            this.registerMobs();
         }
     }
 
@@ -57,10 +56,8 @@ public class MapleQuestStatus
         this.setNpc(npc);
         this.completionTime = System.currentTimeMillis();
 
-        if (status == 1) { // Started
-            if (!quest.getRelevantMobs().isEmpty()) {
-                registerMobs();
-            }
+        if (status == 1 && !quest.getRelevantMobs().isEmpty()) {
+            this.registerMobs();
         }
     }
 
@@ -109,98 +106,13 @@ public class MapleQuestStatus
         this.npc = npc;
     }
 
-    private void registerMobs()
+    public final String getData() {
+        return this.data;
+    }
+
+    public final void setData(final String data)
     {
-        this.killedMobs = new LinkedHashMap<>();
-
-        for (final int i : quest.getRelevantMobs().keySet())
-        {
-            killedMobs.put(i, 0);
-        }
-    }
-
-    private int maxMob(final int mobId)
-    {
-        for (final Map.Entry<Integer, Integer> qs : quest.getRelevantMobs().entrySet()) {
-            if (qs.getKey() == mobId) {
-                return qs.getValue();
-            }
-        }
-
-        return 0;
-    }
-
-    public final boolean mobKilled(final int id, final int skillID)
-    {
-        if (quest != null && quest.getSkillID() > 0) {
-            if (quest.getSkillID() != skillID) {
-                return false;
-            }
-        }
-
-        final Integer mob = killedMobs.get(id);
-
-        if (mob != null) {
-            final int mo = maxMob(id);
-
-            if (mob >= mo) {
-                return false; //nothing happened
-            }
-
-            killedMobs.put(id, Math.min(mob + 1, mo));
-
-            return true;
-        }
-
-        for (Map.Entry<Integer, Integer> mo : killedMobs.entrySet()) {
-            if (questCount(mo.getKey(), id)) {
-                final int mobb = maxMob(mo.getKey());
-                if (mo.getValue() >= mobb) {
-                    return false; //nothing
-                }
-                killedMobs.put(mo.getKey(), Math.min(mo.getValue() + 1, mobb));
-                return true;
-            }
-        } //i doubt this
-        return false;
-    }
-
-    private final boolean questCount(final int mo, final int id) {
-        if (MapleLifeFactory.getQuestCount(mo) != null) {
-            for (int i : MapleLifeFactory.getQuestCount(mo)) {
-                if (i == id) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public final void setMobKills(final int id, final int count) {
-        if (killedMobs == null) {
-            registerMobs(); //lol
-        }
-        killedMobs.put(id, count);
-    }
-
-    public final boolean hasMobKills() {
-        if (killedMobs == null) {
-            return false;
-        }
-        return killedMobs.size() > 0;
-    }
-
-    public final int getMobKills(final int id)
-    {
-        final Integer mob = killedMobs.get(id);
-        if (mob == null) {
-            return 0;
-        }
-        return mob;
-    }
-
-    public final Map<Integer, Integer> getMobKills() {
-        return this.killedMobs;
+        this.data = data;
     }
 
     public final long getCompletionTime()
@@ -213,11 +125,116 @@ public class MapleQuestStatus
         this.completionTime = completionTime;
     }
 
-    public final void setCustomData(final String customData) {
-        this.customData = customData;
+    public final boolean isChanged()
+    {
+        return this.changed;
     }
 
-    public final String getCustomData() {
-        return customData;
+    public final void setChanged(final boolean changed)
+    {
+        this.changed = changed;
+    }
+
+    final boolean mobKilled(final int mobId, final int skillID)
+    {
+        if (this.quest != null && this.quest.getSkillID() > 0) {
+            if (this.quest.getSkillID() != skillID) {
+                return false;
+            }
+        }
+
+        final Integer count = this.killedMobs.get(mobId);
+
+        if (count != null) {
+            final int maxCount = this.maxMob(mobId);
+
+            if (count >= maxCount) {
+                return false;
+            }
+
+            this.killedMobs.put(mobId, Math.min(count + 1, maxCount));
+
+            return true;
+        }
+
+        for (final Map.Entry<Integer, Integer> mob : this.killedMobs.entrySet()) {
+            if (this.questCount(mob.getKey(), mobId)) {
+                final int maxCount = this.maxMob(mob.getKey());
+
+                if (mob.getValue() >= maxCount) {
+                    return false;
+                }
+
+                this.killedMobs.put(mob.getKey(), Math.min(mob.getValue() + 1, maxCount));
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean questCount(final int mobId, final int targetMobId)
+    {
+        if (MapleLifeFactory.getQuestCount(mobId) != null) {
+            for (final int count : MapleLifeFactory.getQuestCount(mobId)) {
+                if (count == targetMobId) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public final void setMobKills(final int mobId, final int count)
+    {
+        if (this.killedMobs == null) {
+            this.registerMobs();
+        }
+
+        this.killedMobs.put(mobId, count);
+    }
+
+    public final boolean hasMobKills()
+    {
+        return this.killedMobs != null && this.killedMobs.size() > 0;
+    }
+
+    public final int getMobKills(final int mobId)
+    {
+        final Integer count = this.killedMobs.get(mobId);
+
+        if (count == null) {
+            return 0;
+        }
+
+        return count;
+    }
+
+    public final Map<Integer, Integer> getMobKills()
+    {
+        return this.killedMobs;
+    }
+
+    private void registerMobs()
+    {
+        this.killedMobs = new LinkedHashMap<>();
+
+        for (final int i : quest.getRelevantMobs().keySet())
+        {
+            killedMobs.put(i, 0);
+        }
+    }
+
+    private int maxMob(final int mobId)
+    {
+        for (final Map.Entry<Integer, Integer> quest : this.quest.getRelevantMobs().entrySet()) {
+            if (quest.getKey() == mobId) {
+                return quest.getValue();
+            }
+        }
+
+        return 0;
     }
 }

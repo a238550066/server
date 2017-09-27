@@ -27,16 +27,12 @@ public class Start
             System.out.println("[!!! 管理員模式 !!!]");
         }
 
-        if (Boolean.parseBoolean(ServerProperties.getProperty("tms.AutoPickUpMeso"))) {
-            System.out.println("開啟自動拾取楓幣模式 :::");
-        }
-
         if (Boolean.parseBoolean(ServerProperties.getProperty("tms.AutoRegister"))) {
             System.out.println("開啟自動註冊模式 :::");
         }
 
         try {
-            final PreparedStatement ps = DatabaseConnection.getConnection().prepareStatement("UPDATE accounts SET loggedin = 0");
+            final PreparedStatement ps = DatabaseConnection.getConnection().prepareStatement("UPDATE `accounts` SET `loggedin` = 0");
 
             ps.executeUpdate();
 

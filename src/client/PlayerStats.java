@@ -654,7 +654,7 @@ public class PlayerStats implements Serializable {
                 break;
             }
         }
-        final ISkill blessoffairy = SkillFactory.getSkill(GameConstants.getBOF_ForJob(chra.getJob()));
+        final ISkill blessoffairy = SkillFactory.getSkill(GameConstants.getBOFForJob(chra.getJob()));
         final int boflevel = chra.getSkillLevel(blessoffairy);
         if (boflevel > 0) {
             watk += blessoffairy.getEffect(boflevel).getX();
@@ -902,7 +902,7 @@ public class PlayerStats implements Serializable {
         final int skil;
         switch (GameConstants.getWeaponType(player.getInventory(MapleInventoryType.EQUIPPED).getItem((byte) -11).getItemId())) {
             case BOW:
-                skil = GameConstants.isKOC(player.getJob()) ? 13100000 : (GameConstants.isResist(player.getJob()) ? 33100000 : 3100000);
+                skil = GameConstants.isKOC(player.getJob()) ? 13100000 : 3100000;
                 break;
             case CLAW:
                 skil = 4100000;
@@ -936,7 +936,7 @@ public class PlayerStats implements Serializable {
                 skil = GameConstants.isKOC(player.getJob()) ? 15100001 : 5100001;
                 break;
             case GUN:
-                skil = GameConstants.isResist(player.getJob()) ? 35100000 : 5200000;
+                skil = 5200000;
                 break;
             case STAFF:
                 skil = 32100006;
@@ -1220,11 +1220,8 @@ public class PlayerStats implements Serializable {
             return skillID + 10000000;
         } else if (GameConstants.isAran(job)) {
             return skillID + 20000000;
-        } else if (GameConstants.isEvan(job)) {
-            return skillID + 20010000;
-        } else if (GameConstants.isResist(job)) {
-            return skillID + 30000000;
         }
+
         return skillID;
     }
 }

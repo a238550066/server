@@ -86,23 +86,23 @@ public class PacketHelper {
         return time + FT_UT_OFFSET;
     }
 
-    public static void addQuestInfo(final MaplePacketLittleEndianWriter mplew, final MapleCharacter chr) {
+    private static void addQuestInfo(final MaplePacketLittleEndianWriter mplew, final MapleCharacter chr)
+    {
         final List<MapleQuestStatus> started = chr.getStartedQuests();
+        final List<MapleQuestStatus> completed = chr.getCompletedQuests();
+
         mplew.writeShort(started.size());
 
-        for (final MapleQuestStatus q : started) {
-            mplew.writeShort(q.getQuest().getId());
-            mplew.writeMapleAsciiString(q.getCustomData() != null ? q.getCustomData() : "");
+        for (final MapleQuestStatus status : started) {
+            mplew.writeShort(status.getQuest().getId());
+            mplew.writeMapleAsciiString(status.getData() != null ? status.getData() : "");
         }
-        final List<MapleQuestStatus> completed = chr.getCompletedQuests();
-        int time;
+
         mplew.writeShort(completed.size());
 
-        for (final MapleQuestStatus q : completed) {
-            mplew.writeShort(q.getQuest().getId());
-            time = KoreanDateUtil.getQuestTimestamp(q.getCompletionTime());
-            mplew.writeInt(time); // maybe start time? no effect.
-            mplew.writeInt(time); // completion time
+        for (final MapleQuestStatus status : completed) {
+            mplew.writeShort(status.getQuest().getId());
+            mplew.writeLong(status.getCompletionTime() / 10000 * 100000000 + 116445024000000000L);
         }
     }
 
@@ -258,18 +258,7 @@ public class PacketHelper {
         mplew.writeShort(chr.getJob()); // job
         chr.getStat().connectData(mplew);
         mplew.writeShort(chr.getRemainingAp()); // remaining ap
-        if (GameConstants.isEvan(chr.getJob()) || GameConstants.isResist(chr.getJob())) {
-            final int size = chr.getRemainingSpSize();
-            mplew.write(size);
-            for (int i = 0; i < chr.getRemainingSps().length; i++) {
-                if (chr.getRemainingSp(i) > 0) {
-                    mplew.write(i + 1);
-                    mplew.write(chr.getRemainingSp(i));
-                }
-            }
-        } else {
-            mplew.writeShort(chr.getRemainingSp()); // remaining sp
-        }
+        mplew.writeShort(chr.getRemainingSp()); // remaining sp
         mplew.writeInt(chr.getExp()); // exp
         mplew.writeShort(chr.getFame()); // fame
         mplew.writeInt(chr.getGachExp()); // Gachapon exp
@@ -467,7 +456,7 @@ public class PacketHelper {
         addRingInfo(mplew, chr);
         addRocksInfo(mplew, chr);
         addMonsterBookInfo(mplew, chr);
-        chr.QuestInfoPacket(mplew); // for every questinfo: int16_t questid, string questdata
+        chr.questDataPacket(mplew); // for every questinfo: int16_t questid, string questdata
         mplew.writeInt(0); // PQ rank
         mplew.writeShort(0);
     }

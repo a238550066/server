@@ -687,12 +687,12 @@ public class NPCConversationManager extends AbstractPlayerInteraction
 
     public final String getQuestCustomData(final int questId)
     {
-        return this.getPlayer().getQuestOrAdd(MapleQuest.getInstance(questId)).getInfo();
+        return this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId)).getInfo();
     }
 
     public final void setQuestCustomData(final int questId, final String customData)
     {
-        final MapleQuestStatus status = this.getPlayer().getQuestOrAdd(MapleQuest.getInstance(questId));
+        final MapleQuestStatus status = this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId));
 
         status.setInfo(customData);
 
@@ -701,7 +701,7 @@ public class NPCConversationManager extends AbstractPlayerInteraction
 
     public final void setQuestRecord(final MapleCharacter ch, final int questId, final String data)
     {
-        ch.getQuestOrAdd(MapleQuest.getInstance(questId)).setCustomData(data);
+        ch.getOrAddQuest(MapleQuest.getInstance(questId)).setData(data);
     }
 
     /* NPC 相關 */

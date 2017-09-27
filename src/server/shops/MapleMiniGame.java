@@ -327,7 +327,7 @@ public class MapleMiniGame extends AbstractPlayerStore {
                 newData.append(",");
             }
             String newDat = newData.toString();
-            z.getQuestOrAdd(MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE)).setCustomData(newDat.substring(0, newDat.length() - 1));
+            z.getOrAddQuest(MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE)).setData(newDat.substring(0, newDat.length() - 1));
         }
     }
 
@@ -335,15 +335,15 @@ public class MapleMiniGame extends AbstractPlayerStore {
         MapleQuest quest = MapleQuest.getInstance(GameType == 1 ? GameConstants.OMOK_SCORE : GameConstants.MATCH_SCORE);
         MapleQuestStatus record;
         if (chr.getQuestNoAdd(quest) == null) {
-            record = chr.getQuestOrAdd(quest);
-            record.setCustomData("0,0,0");
+            record = chr.getOrAddQuest(quest);
+            record.setData("0,0,0");
         } else {
             record = chr.getQuestNoAdd(quest);
-            if (record.getCustomData() == null || record.getCustomData().length() < 5 || record.getCustomData().indexOf(",") == -1) {
-                record.setCustomData("0,0,0"); //refresh
+            if (record.getData() == null || record.getData().length() < 5 || record.getData().indexOf(",") == -1) {
+                record.setData("0,0,0"); //refresh
             }
         }
-        return record.getCustomData();
+        return record.getData();
     }
 
     public int getRequestedTie() {

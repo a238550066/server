@@ -1509,13 +1509,7 @@ public class MapleStatEffect implements Serializable {
                 }
                 return al.getEffect(chr.getSkillLevel(al));
         }
-        if (GameConstants.isResist(chr.getJob())) {
-            al = SkillFactory.getSkill(30000002);
-            if (chr.getSkillLevel(al) <= 0) {
-                return null;
-            }
-            return al.getEffect(chr.getSkillLevel(al));
-        }
+
         return null;
     }
 

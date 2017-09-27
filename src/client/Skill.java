@@ -267,10 +267,8 @@ public class Skill implements ISkill {
     public boolean canBeLearnedBy(int job) {
         int jid = job;
         int skillForJob = id / 10000;
-	if( skillForJob == 0 || skillForJob == 1000 || skillForJob == 2000 || skillForJob == 2001 || skillForJob == 3000){
+        if( skillForJob == 0 || skillForJob == 1000 || skillForJob == 2000 || skillForJob == 2001 || skillForJob == 3000){
             return true;
-	}else if (skillForJob == 2001 && GameConstants.isEvan(job)) {
-            return true; //special exception for evan -.-
         } else if (jid / 100 != skillForJob / 100) { // wrong job
             return false;
         } else if (jid / 1000 != skillForJob / 1000) { // wrong job
@@ -280,10 +278,6 @@ public class Skill implements ISkill {
         } else if (GameConstants.isKOC(skillForJob) && !GameConstants.isKOC(job)) {
             return false;
         } else if (GameConstants.isAran(skillForJob) && !GameConstants.isAran(job)) {
-            return false;
-        } else if (GameConstants.isEvan(skillForJob) && !GameConstants.isEvan(job)) {
-            return false;
-        } else if (GameConstants.isResist(skillForJob) && !GameConstants.isResist(job)) {
             return false;
         } else if ((skillForJob / 10) % 10 > (jid / 10) % 10) { // wrong 2nd job
             return false;

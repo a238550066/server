@@ -1,26 +1,28 @@
 /*
- This file is part of the OdinMS Maple Story Server
- Copyright (C) 2008 ~ 2010 Patrick Huy <patrick.huy@frz.cc> 
- Matthias Butz <matze@odinms.de>
- Jan Christian Meyer <vimes@odinms.de>
-
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU Affero General Public License version 3
- as published by the Free Software Foundation. You may not use, modify
- or distribute this program under any other version of the
- GNU Affero General Public License.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Affero General Public License for more details.
-
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * TMS 113 constants/GameConstants.java
+ *
+ * Copyright (C) 2017 ~ Present
+ *
+ * Patrick Huy <patrick.huy@frz.cc>
+ * Matthias Butz <matze@odinms.de>
+ * Jan Christian Meyer <vimes@odinms.de>
+ * freedom <freedom@csie.io>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package constants;
 
-import client.MapleCharacter;
 import client.inventory.MapleInventoryType;
 import client.inventory.MapleWeaponType;
 import client.status.MonsterStatus;
@@ -69,78 +71,93 @@ public class GameConstants
         1312399800, 1384319309, 1460180007, 1540197871, 1624600714, 1713628833, 1807535693, 1906588648, 2011069705, 2121276324
     };
 
-    private static final int[] closeness = {0, 1, 3, 6, 14, 31, 60, 108, 181, 287, 434, 632, 891, 1224, 1642, 2161, 2793,
-        3557, 4467, 5542, 6801, 8263, 9950, 11882, 14084, 16578, 19391, 22547, 26074,
-        30000};
+    // 寵物親密度
+    private static final int[] closeness = {
+        0, 1, 3, 6, 14, 31, 60, 108, 181, 287, 434,
+        632, 891, 1224, 1642, 2161, 2793, 3557, 4467, 5542, 6801,
+        8263, 9950, 11882, 14084, 16578, 19391, 22547, 26074, 30000
+    };
 
-    private static final int[] mountexp = {0, 6, 25, 50, 105, 134, 196, 254, 263, 315, 367, 430, 543, 587, 679, 725, 897, 1146, 1394, 1701, 2247,
-        2543, 2898, 3156, 3313, 3584, 3923, 4150, 4305, 4550};
+    private static final int[] mountexp = {
+        0, 6, 25, 50, 105, 134, 196, 254, 263, 315, 367,
+        430, 543, 587, 679, 725, 897, 1146, 1394, 1701, 2247,
+        2543, 2898, 3156, 3313, 3584, 3923, 4150, 4305, 4550
+    };
 
-    public static final int[] itemBlock = {2340000, 2049100, 4001129, 2040037, 2040006, 2040007, 2040303, 2040403, 2040506, 2040507, 2040603, 2040709, 2040710, 2040711, 2040806, 2040903, 2041024, 2041025, 2043003, 2043103, 2043203, 2043303, 2043703, 2043803, 2044003, 2044103, 2044203, 2044303, 2044403, 2044503, 2044603, 2044908, 2044815, 2044019, 2044703, 1004001, 4007008, 1004002, 5152053, 5150040};
-
-    public static final int[] cashBlock = {0}; //miracle cube and stuff
+    public static final int[] itemBlock = {
+        2340000, 2049100, 4001129, 2040037, 2040006, 2040007,
+        2040303, 2040403, 2040506, 2040507, 2040603, 2040709,
+        2040710, 2040711, 2040806, 2040903, 2041024, 2041025,
+        2043003, 2043103, 2043203, 2043303, 2043703, 2043803,
+        2044003, 2044103, 2044203, 2044303, 2044403, 2044503,
+        2044603, 2044908, 2044815, 2044019, 2044703, 1004001,
+        4007008, 1004002, 5152053, 5150040
+    };
 
     public static final int OMOK_SCORE = 122200;
     public static final int MATCH_SCORE = 122210;
-    public static final int[] blockedSkills = {4341003};
-    public static final String[] RESERVED = {"Rental"};
 
-    public static int getExpNeededForLevel(final int level) {
+    public static int getExpNeededForLevel(final int level)
+    {
         if (level < 0 || level >= exp.length) {
             return Integer.MAX_VALUE;
         }
+
         return exp[level];
     }
 
-    public static int getClosenessNeededForLevel(final int level) {
+    public static int getClosenessNeededForLevel(final int level)
+    {
         return closeness[level - 1];
     }
 
-    public static int getMountExpNeededForLevel(final int level) {
+    public static int getMountExpNeededForLevel(final int level)
+    {
         return mountexp[level - 1];
     }
 
-    public static int getBookLevel(final int level) {
-        return (int) ((5 * level) * (level + 1));
+    public static int getBookLevel(final int level)
+    {
+        return (5 * level) * (level + 1);
     }
 
-    public static int getTimelessRequiredEXP(final int level) {
+    private static int getTimelessRequiredEXP(final int level)
+    {
         return 70 + (level * 10);
     }
 
-    public static int getReverseRequiredEXP(final int level) {
+    private static int getReverseRequiredEXP(final int level)
+    {
         return 60 + (level * 5);
     }
 
-    public static int maxViewRangeSq() {
+    public static int maxViewRangeSq()
+    {
         return 800000; // 800 * 800
     }
 
-    public static boolean isJobFamily(final int baseJob, final int currentJob) {
+    public static boolean isJobFamily(final int baseJob, final int currentJob)
+    {
         return currentJob >= baseJob && currentJob / 100 == baseJob / 100;
     }
 
-    public static boolean isKOC(final int job) {
+    public static boolean isKOC(final int job)
+    {
         return job >= 1000 && job < 2000;
     }
 
-    public static boolean isEvan(final int job) {
-        return job == 2001 || (job >= 2200 && job <= 2218);
-    }
-
-    public static boolean isAran(final int job) {
+    public static boolean isAran(final int job)
+    {
         return job >= 2000 && job <= 2112 && job != 2001;
     }
 
-    public static boolean isResist(final int job) {
-        return job >= 3000 && job <= 3512;
-    }
-
-    public static boolean isAdventurer(final int job) {
+    public static boolean isAdventurer(final int job)
+    {
         return job >= 0 && job < 1000;
     }
 
-    public static boolean isRecoveryIncSkill(final int id) {
+    public static boolean isRecoveryIncSkill(final int id)
+    {
         switch (id) {
             case 1110000:
             case 2000000:
@@ -150,14 +167,17 @@ public class GameConstants
             case 4200001:
                 return true;
         }
+
         return false;
     }
 
-    public static boolean isLinkedAranSkill(final int id) {
+    public static boolean isLinkedAranSkill(final int id)
+    {
         return getLinkedAranSkill(id) != id;
     }
 
-    public static int getLinkedAranSkill(final int id) {
+    public static int getLinkedAranSkill(final int id)
+    {
         switch (id) {
             case 21110007:
             case 21110008:
@@ -165,37 +185,30 @@ public class GameConstants
             case 21120009:
             case 21120010:
                 return 21120002;
-            case 4321001:
-                return 4321000;
-            case 33101006:
-            case 33101007:
-                return 33101005;
-            case 33101008:
-                return 33101004;
-            case 35101009:
-            case 35101010:
-                return 35100008;
-            case 35111009:
-            case 35111010:
-                return 35111001;
         }
+
         return id;
     }
 
-    public static int getBOF_ForJob(final int job) {
+    /**
+     * 精靈的祝福技能 id
+     */
+    public static int getBOFForJob(final int job)
+    {
         if (isAdventurer(job)) {
             return 12;
         } else if (isKOC(job)) {
             return 10000012;
-        } else if (isResist(job)) {
-            return 30000012;
-        } else if (isEvan(job)) {
-            return 20010012;
         }
+
         return 20000012;
     }
 
-    public static boolean isElementAmp_Skill(final int skill) {
+    /**
+     * 魔力激發
+     */
+    public static boolean isElementAmpSkill(final int skill)
+    {
         switch (skill) {
             case 2110001:
             case 2210001:
@@ -203,10 +216,15 @@ public class GameConstants
             case 22150000:
                 return true;
         }
+
         return false;
     }
 
-    public static int getMPEaterForJob(final int job) {
+    /**
+     * 魔力吸收
+     */
+    public static int getMPEaterForJob(final int job)
+    {
         switch (job) {
             case 210:
             case 211:
@@ -221,37 +239,30 @@ public class GameConstants
             case 232:
                 return 2300000;
         }
+
         return 2100000; // Default, in case GM
     }
 
-    public static int getJobShortValue(int job) {
-        if (job >= 1000) {
-            job -= (job / 1000) * 1000;
-        }
-        job /= 100;
-        if (job == 4) { // For some reason dagger/ claw is 8.. IDK
-            job *= 2;
-        } else if (job == 3) {
-            job += 1;
-        } else if (job == 5) {
-            job += 11; // 16
-        }
-        return job;
-    }
-
-    public static boolean isPyramidSkill(final int skill) {
+    /**
+     * 法老的憤怒攻擊
+     */
+    public static boolean isPyramidSkill(final int skill)
+    {
         switch (skill) {
             case 1020:
             case 10001020:
             case 20001020:
-            case 20011020:
-            case 30001020:
                 return true;
         }
+
         return false;
     }
 
-    public static boolean isMulungSkill(final int skill) {
+    /**
+     * 武陵道場技能
+     */
+    public static boolean isMulungSkill(final int skill)
+    {
         switch (skill) {
             case 1009:
             case 1010:
@@ -262,67 +273,77 @@ public class GameConstants
             case 20001009:
             case 20001010:
             case 20001011:
-            case 20011009:
-            case 20011010:
-            case 20011011:
-            case 30001009:
-            case 30001010:
-            case 30001011:
                 return true;
         }
+
         return false;
     }
 
-    // 鏢
-    public static boolean isThrowingStar(final int itemId) {
+    /**
+     * 鏢
+     */
+    public static boolean isThrowingStar(final int itemId)
+    {
         return itemId / 10000 == 207;
     }
 
-    // 子彈
-    public static boolean isBullet(final int itemId) {
+    /**
+     * 子彈
+     */
+    public static boolean isBullet(final int itemId)
+    {
         return itemId / 10000 == 233;
     }
 
-    public static boolean isRechargable(final int itemId) {
+    public static boolean isRechargable(final int itemId)
+    {
         return isThrowingStar(itemId) || isBullet(itemId);
     }
 
-    public static boolean isOverall(final int itemId) {
+    /**
+     * 套服
+     */
+    public static boolean isOverall(final int itemId)
+    {
         return itemId / 10000 == 105;
     }
 
-    public static boolean isPet(final int itemId) {
+    public static boolean isPet(final int itemId)
+    {
         return itemId / 10000 == 500;
     }
 
-    public static boolean isArrowForCrossBow(final int itemId) {
-        return itemId >= 2061000 && itemId < 2062000;
-    }
-
-    public static boolean isArrowForBow(final int itemId) {
-        return itemId >= 2060000 && itemId < 2061000;
-    }
-
-    public static boolean isMagicWeapon(final int itemId) {
+    /**
+     * 法杖
+     */
+    public static boolean isMagicWeapon(final int itemId)
+    {
         final int s = itemId / 10000;
         return s == 137 || s == 138;
     }
 
-    public static boolean isWeapon(final int itemId) {
+    public static boolean isWeapon(final int itemId)
+    {
         return itemId >= 1300000 && itemId < 1500000;
     }
 
-    public static MapleInventoryType getInventoryType(final int itemId) {
+    public static MapleInventoryType getInventoryType(final int itemId)
+    {
         final byte type = (byte) (itemId / 1000000);
+
         if (type < 1 || type > 5) {
             return MapleInventoryType.UNDEFINED;
         }
+
         return MapleInventoryType.getByType(type);
     }
-	
-    public static MapleWeaponType getWeaponType(final int itemId) {
+
+    public static MapleWeaponType getWeaponType(final int itemId)
+    {
         int cat = itemId / 10000;
+
         cat = cat % 100;
+
         switch (cat) {
             case 30:
                 return MapleWeaponType.SWORD1H;
@@ -359,56 +380,48 @@ public class GameConstants
             case 49:
                 return MapleWeaponType.GUN;
         }
+
         return MapleWeaponType.NOT_A_WEAPON;
     }
 
-    public static boolean isShield(final int itemId) {
-        int cat = itemId / 10000;
-        cat = cat % 100;
-        return cat == 9;
-    }
-
-    public static boolean isEquip(final int itemId) {
+    public static boolean isEquip(final int itemId)
+    {
         return itemId / 1000000 == 1;
     }
 
-    public static boolean isCleanSlate(int itemId) {
+    /**
+     * 白衣卷軸
+     */
+    public static boolean isCleanSlate(int itemId)
+    {
         return itemId / 100 == 20490;
     }
 
-    public static boolean isAccessoryScroll(int itemId) {
-        return itemId / 100 == 20492;
-    }
-
-    public static boolean isChaosScroll(int itemId) {
+    /**
+     * 混沌卷軸
+     */
+    public static boolean isChaosScroll(int itemId)
+    {
         if (itemId >= 2049105 && itemId <= 2049110) {
             return false;
         }
+
         return itemId / 100 == 20491;
     }
 
-    public static int getChaosNumber(int itemId) {
-        return itemId == 2049116 ? 10 : 5;
-    }
-
-    public static boolean isEquipScroll(int scrollId) {
-        return scrollId / 100 == 20493;
-    }
-
-    public static boolean isPotentialScroll(int scrollId) {
-        return scrollId / 100 == 20494;
-    }
-
-    public static boolean isSpecialScroll(final int scrollId) {
+    public static boolean isSpecialScroll(final int scrollId)
+    {
         switch (scrollId) {
-            case 2040727: // Spikes on show
-            case 2041058: // Cape for Cold protection
+            case 2040727: // 鞋子防滑卷軸10%
+            case 2041058: // 披風防寒卷軸10%
                 return true;
         }
+
         return false;
     }
 
-    public static boolean isTwoHanded(final int itemId) {
+    public static boolean isTwoHanded(final int itemId)
+    {
         switch (getWeaponType(itemId)) {
             case AXE2H:
             case GUN:
@@ -421,52 +434,48 @@ public class GameConstants
             case SPEAR:
             case SWORD2H:
                 return true;
-            default:
-                return false;
         }
+
+        return true;
     }
 
-    public static boolean isTownScroll(final int id) {
-        return id >= 2030000 && id < 2040000;
-    }
-
-    public static boolean isUpgradeScroll(final int id) {
+    public static boolean isUpgradeScroll(final int id)
+    {
         return id >= 2040000 && id < 2050000;
     }
 
-    public static boolean isGun(final int id) {
-        return id >= 1492000 && id < 1500000;
-    }
-
-    public static boolean isUse(final int id) {
+    public static boolean isUse(final int id)
+    {
         return id >= 2000000 && id <= 2490000;
     }
 
-    public static boolean isSummonSack(final int id) {
+    public static boolean isSummonSack(final int id)
+    {
         return id / 10000 == 210;
     }
 
-    public static boolean isMonsterCard(final int id) {
+    public static boolean isMonsterCard(final int id)
+    {
         return id / 10000 == 238;
     }
 
-    public static boolean isSpecialCard(final int id) {
+    public static boolean isSpecialCard(final int id)
+    {
         return id / 1000 >= 2388;
     }
 
-    public static int getCardShortId(final int id) {
+    public static int getCardShortId(final int id)
+    {
         return id % 10000;
     }
 
-	public static boolean isSpear(final int itemId){
-		return (getWeaponType(itemId) == MapleWeaponType.SPEAR) || (getWeaponType(itemId) == MapleWeaponType.POLE_ARM);
-	}
-	
-    public static boolean isGem(final int id) {
+    public static boolean isGem(final int id)
+    {
         return id >= 4250000 && id <= 4251402;
     }
 
-    public static boolean isOtherGem(final int id) {
+    public static boolean isOtherGem(final int id)
+    {
         switch (id) {
             case 4001174:
             case 4001175:
@@ -491,14 +500,12 @@ public class GameConstants
             case 1142157:
                 return true; //mostly quest items
         }
+
         return false;
     }
 
-    public static boolean isCustomQuest(final int id) {
-        return id > 99999;
-    }
-
-    public static int getTaxAmount(final int meso) {
+    public static int getTaxAmount(final int meso)
+    {
         if (meso >= 100000000) {
             return (int) Math.round(0.06 * meso);
         } else if (meso >= 25000000) {
@@ -512,10 +519,12 @@ public class GameConstants
         } else if (meso >= 100000) {
             return (int) Math.round(0.008 * meso);
         }
+
         return 0;
     }
 
-    public static int EntrustedStoreTax(final int meso) {
+    public static int EntrustedStoreTax(final int meso)
+    {
         if (meso >= 100000000) {
             return (int) Math.round(0.03 * meso);
         } else if (meso >= 25000000) {
@@ -529,10 +538,12 @@ public class GameConstants
         } else if (meso >= 100000) {
             return (int) Math.round(0.004 * meso);
         }
+
         return 0;
     }
 
-    public static short getSummonAttackDelay(final int id) {
+    public static short getSummonAttackDelay(final int id)
+    {
         switch (id) {
             case 15001004: // Lightning
             case 14001005: // Darkness
@@ -556,16 +567,14 @@ public class GameConstants
             case 3111002: // Puppet
             case 1321007: // Beholder
             case 4341006:
-            case 35121009:
-            case 35121010:
-            case 35111011:
-            case 35111002:
                 return 0;
         }
+
         return 0;
     }
 
-    public static short getAttackDelay(final int id) {
+    public static short getAttackDelay(final int id)
+    {
         switch (id) { // Assume it's faster(2)
             case 4321001: //tornado spin
                 return 40; //reason being you can spam with final assaulter
@@ -718,7 +727,8 @@ public class GameConstants
         return 330; // Default usually
     }
 
-    public static byte gachaponRareItem(final int id) {
+    public static byte gachaponRareItem(final int id)
+    {
         switch (id) {
             case 2340000: // White Scroll
             case 2049100: // Chaos Scroll
@@ -726,6 +736,7 @@ public class GameConstants
         }
         return 0;
     }
+
     public final static int[] goldrewards = {
         2340000, 1, // white scroll
         2070018, 1, // balance fury 沒有的物品
@@ -1090,10 +1101,6 @@ public class GameConstants
         }
     }
 
-    public static boolean isRing(int itemId) {
-        return itemId >= 1112000 && itemId < 1113000;
-    }// 112xxxx - pendants, 113xxxx - belts
-
     //if only there was a way to find in wz files -.-
     public static boolean isEffectRing(int itemid) {
         return isFriendshipRing(itemid) || isCrushRing(itemid);
@@ -1139,7 +1146,8 @@ public class GameConstants
         }
         return 0;
     }
-    public static int[] blockedMaps = {109050000, 280030000, 240060200, 280090000, 280030001, 240060201, 950101100, 950101010};
+
+    public static int[] blockedMaps = {109050000, 280030000, 240060200, 280090000};
     //If you can think of more maps that could be exploitable via npc,block nao pliz!
 
     public static int getExpForLevel(int i, int itemId) {
@@ -1148,6 +1156,7 @@ public class GameConstants
         } else if (getMaxLevel(itemId) > 0) {
             return getTimelessRequiredEXP(i);
         }
+
         return 0;
     }
 
@@ -1250,7 +1259,8 @@ public class GameConstants
         return 0;
     }
 
-    public static int getSkillForStat(MonsterStatus stat) {
+    public static int getSkillForStat(MonsterStatus stat)
+    {
         switch (stat) {
             case ACC:
                 return 3221006;
@@ -1259,6 +1269,7 @@ public class GameConstants
         }
         return 0;
     }
+
     public final static int[] normalDrops = {
         4001009, //real
         4001010,
@@ -1608,20 +1619,8 @@ public class GameConstants
         }
     }
 
-    public static boolean isKatara(int itemId) {
-        return itemId / 10000 == 134;
-    }
-
-    public static boolean isDagger(int itemId) {
-        return itemId / 10000 == 133;
-    }
-
     public static boolean isApplicableSkill(int skil) {
         return skil < 40000000 && (skil % 10000 < 8000 || skil % 10000 > 8003); //no additional/decent skills
-    }
-
-    public static boolean isApplicableSkill_(int skil) { //not applicable to saving but is more of temporary
-        return skil >= 90000000 || (skil % 10000 >= 8000 && skil % 10000 <= 8003);
     }
 
     public static boolean isTablet(int itemId) {
@@ -1794,7 +1793,7 @@ public class GameConstants
         }
     }
 
-    public static final boolean isMountItemAvailable(final int mountid, final int jobid) {
+    public static boolean isMountItemAvailable(final int mountid, final int jobid) {
         if (jobid != 900 && mountid / 10000 == 190) {
             if (isKOC(jobid)) {
                 if (mountid < 1902005 || mountid > 1902007) {
@@ -1808,17 +1807,9 @@ public class GameConstants
                 if (mountid < 1902015 || mountid > 1902018) {
                     return false;
                 }
-            } else if (isEvan(jobid)) {
-                if (mountid < 1902040 || mountid > 1902042) {
-                    return false;
-                }
             }
         }
         return true;
-    }
-
-    public static boolean isEvanDragonItem(final int itemId) {
-        return itemId >= 1940000 && itemId < 1980000; //194 = mask, 195 = pendant, 196 = wings, 197 = tail
     }
 
     public static boolean canScroll(final int itemId) {
@@ -1828,12 +1819,13 @@ public class GameConstants
     public static boolean canHammer(final int itemId) {
         switch (itemId) {
             case 1122000:
-            case 1122076: //ht, chaos ht
                 return false;
         }
+
         if (!canScroll(itemId)) {
             return false;
         }
+
         return true;
     }
     public static int[] owlItems = new int[]{
@@ -1860,25 +1852,15 @@ public class GameConstants
     }
 
     public static int getExpRate_Below10(final int job) {
-        if (GameConstants.isEvan(job)) {
-            return 1;
-        } else if (GameConstants.isAran(job) || GameConstants.isKOC(job)) {
+        if (GameConstants.isAran(job) || GameConstants.isKOC(job)) {
             return 5;
         }
+
         return 1;
     }
 
     public static int getExpRate_Quest(final int level) {
         return 1;
-    }
-
-    public static String getCashBlockedMsg(final int id) {
-        switch (id) {
-            case 5062000:
-                //cube
-                return "This item may only be purchased at the PlayerNPC in FM.";
-        }
-        return "This item is blocked from the Cash Shop.";
     }
 
     public static boolean isCustomReactItem(final int rid, final int iid, final int original) {
@@ -1924,8 +1906,9 @@ public class GameConstants
         }
     }
 
-    public static boolean canForfeit(int questid) {
-        switch (questid) {
+    public static boolean canForfeit(int questId)
+    {
+        switch (questId) {
             case 20000:
             case 20010:
             case 20015: //cygnus quests
@@ -1934,9 +1917,5 @@ public class GameConstants
             default:
                 return true;
         }
-    }
-
-    public static boolean isEventMap(final int mapid) {
-        return (mapid >= 109010000 && mapid < 109050000) || (mapid > 109050001 && mapid < 109090000) || (mapid >= 809040000 && mapid <= 809040100);
     }
 }

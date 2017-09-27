@@ -99,7 +99,7 @@ class MapleQuestAction
                 if (start && c.getQuest(this.quest).getForfeited() > 0) {
                     break;
                 }
-                c.getQuestOrAdd(this.quest).setInfo(MapleDataTool.getString(this.data));
+                c.getOrAddQuest(this.quest).setInfo(MapleDataTool.getString(this.data));
                 break;
 
             case item: // 物品

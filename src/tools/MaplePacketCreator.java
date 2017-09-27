@@ -191,11 +191,7 @@ public class MaplePacketCreator {
                 } else if (value < 0x20) {
                     mplew.write(statupdate.getRight().byteValue());
                 } else if (value == 0x8000) { //availablesp
-                    if (GameConstants.isEvan(evan) || GameConstants.isResist(evan)) {
-                        throw new UnsupportedOperationException("Evan/Resistance wrong updating");
-                    } else {
-                        mplew.writeShort(statupdate.getRight().shortValue());
-                    }
+                    mplew.writeShort(statupdate.getRight().shortValue());
                 } else if (value < 0xFFFF) {
                     mplew.writeShort(statupdate.getRight().shortValue());
                 } else {
@@ -215,7 +211,7 @@ public class MaplePacketCreator {
         mplew.writeShort(SendPacketOpcode.UPDATE_STATS.getValue());
         mplew.write(itemReaction ? 1 : 0);
         mplew.writeInt(0x8000);
-        if (overrideJob || GameConstants.isEvan(chr.getJob()) || GameConstants.isResist(chr.getJob())) {
+        if (overrideJob) {
             mplew.write(chr.getRemainingSpSize());
             for (int i = 0; i < chr.getRemainingSps().length; i++) {
                 if (chr.getRemainingSp(i) > 0) {
@@ -1605,8 +1601,9 @@ public class MaplePacketCreator {
         return mplew.getPacket();
     }
 
-    public static MaplePacket updateQuestInfo(MapleCharacter c, int quest, int npc, byte progress) {
-        MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
+    public static MaplePacket updateQuestInfo(final int quest, final int npc, final byte progress)
+    {
+        final MaplePacketLittleEndianWriter mplew = new MaplePacketLittleEndianWriter();
 
         mplew.writeShort(SendPacketOpcode.UPDATE_QUEST_INFO.getValue());
         mplew.write(progress);

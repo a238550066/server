@@ -1987,15 +1987,7 @@ public final class MapleMap {
                 chr.getClient().getSession().write(MaplePacketCreator.temporaryStats_Reset());
             }
         }
-        if (GameConstants.isEvan(chr.getJob()) && chr.getJob() >= 2200 && chr.getBuffedValue(MapleBuffStat.MONSTER_RIDING) == null) {
-            if (chr.getDragon() == null) {
-                chr.makeDragon();
-            }
-            spawnDragon(chr.getDragon());
-            if (!chr.isClone()) {
-                updateMapObjectVisibility(chr, chr.getDragon());
-            }
-        }
+
         if ((mapid == 10000 && chr.getJob() == 0) || (mapid == 130030000 && chr.getJob() == 1000) || (mapid == 914000000 && chr.getJob() == 2000) || (mapid == 900010000 && chr.getJob() == 2001)) {
 //            chr.getClient().getSession().write(MaplePacketCreator.startMapEffect("Welcome to " + chr.getClient().getChannelServer().getServerName() + "!", 5122000, true));
 //            chr.dropMessage(1, "Welcome to " + chr.getClient().getChannelServer().getServerName() + ", " + chr.getName() + " ! \r\nUse @joyce to collect your Item Of Appreciation once you're level 10! \r\nUse @help for commands. \r\nGood luck and have fun!");

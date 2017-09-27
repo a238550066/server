@@ -462,7 +462,7 @@ public class NPCHandler {
             final int newData = slea.readInt();
             final MapleQuestStatus stats = c.getPlayer().getQuestNoAdd(quest);
             if (stats != null && stats.getStatus() == 1) {
-                stats.setCustomData(String.valueOf(newData));
+                stats.setData(String.valueOf(newData));
                 c.getPlayer().updateQuest(stats, true);
                 MapleInventoryManipulator.removeFromSlot(c, MapleInventoryType.ETC, slot, (short) 1, false);
             }

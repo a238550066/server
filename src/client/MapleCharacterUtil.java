@@ -49,21 +49,11 @@ public class MapleCharacterUtil {
         if (name.length() < 2) {
             return false;
         }
-        for (String z : GameConstants.RESERVED) {
-            if (name.indexOf(z) != -1) {
-                return false;
-            }
-        }
         return true;
     }
 
     public static final boolean canChangePetName(final String name) {
         if (petPattern.matcher(name).matches()) {
-            for (String z : GameConstants.RESERVED) {
-                if (name.indexOf(z) != -1) {
-                    return false;
-                }
-            }
             return true;
         }
         return false;

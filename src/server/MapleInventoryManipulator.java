@@ -554,7 +554,7 @@ public class MapleInventoryManipulator {
         }
 
         final Map<String, Integer> stats = ii.getEquipStats(source.getItemId());
-        if (dst < -999 && !GameConstants.isEvanDragonItem(source.getItemId())) {
+        if (dst < -999) {
             c.getSession().write(MaplePacketCreator.enableActions());
             return;
         } else if (dst >= -999 && dst < -99 && stats.get("cash") == 0) {
@@ -570,13 +570,6 @@ public class MapleInventoryManipulator {
             return;
         }
         if (!ii.isCash(source.getItemId()) && !GameConstants.isMountItemAvailable(source.getItemId(), c.getPlayer().getJob())) {
-            c.getSession().write(MaplePacketCreator.enableActions());
-            return;
-        }
-        if (GameConstants.isKatara(source.getItemId())) {
-            dst = (byte) -10; //shield slot
-        }
-        if (GameConstants.isEvanDragonItem(source.getItemId()) && (chr.getJob() < 2200 || chr.getJob() > 2218)) {
             c.getSession().write(MaplePacketCreator.enableActions());
             return;
         }
@@ -617,13 +610,7 @@ public class MapleInventoryManipulator {
             }
             case -10: { // Shield
                 IItem weapon = chr.getInventory(MapleInventoryType.EQUIPPED).getItem((byte) -11);
-                if (GameConstants.isKatara(source.getItemId())) {
-                    if ((chr.getJob() != 900 && (chr.getJob() < 430 || chr.getJob() > 434)) || weapon == null || !GameConstants.isDagger(weapon.getItemId())) {
-                        c.getSession().write(MaplePacketCreator.getInventoryFull());
-                        c.getSession().write(MaplePacketCreator.getShowInventoryFull());
-                        return;
-                    }
-                } else if (weapon != null && GameConstants.isTwoHanded(weapon.getItemId())) {
+                if (weapon != null && GameConstants.isTwoHanded(weapon.getItemId())) {
                     if (chr.getInventory(MapleInventoryType.EQUIP).isFull()) {
                         c.getSession().write(MaplePacketCreator.getInventoryFull());
                         c.getSession().write(MaplePacketCreator.getShowInventoryFull());

@@ -276,7 +276,7 @@ public class MapleQuest
         final MapleQuestStatus newStatus = new MapleQuestStatus(this, (byte) 1, npc);
 
         newStatus.setInfo(oldStatus.getInfo());
-        newStatus.setCustomData(customData);
+        newStatus.setData(customData);
         newStatus.setCompletionTime(oldStatus.getCompletionTime());
 
         if (oldStatus.getMobKills() != null) {
@@ -294,7 +294,7 @@ public class MapleQuest
         final MapleQuestStatus newStatus = new MapleQuestStatus(this, (byte) 2, npc);
 
         newStatus.setInfo(oldStatus.getInfo());
-        newStatus.setCustomData(oldStatus.getCustomData());
+        newStatus.setData(oldStatus.getData());
         newStatus.setCompletionTime(System.currentTimeMillis());
 
         if (oldStatus.getMobKills() != null) {
@@ -350,7 +350,7 @@ public class MapleQuest
      */
     private boolean checkNPCOnMap(MapleCharacter c, int npcId)
     {
-        return (GameConstants.isEvan(c.getJob()) && npcId == 1013000) || (c.getMap() != null && c.getMap().containsNPC(npcId));
+        return c.getMap() != null && c.getMap().containsNPC(npcId);
     }
 
     public final void restoreLostItem(final MapleCharacter c, final int itemId)

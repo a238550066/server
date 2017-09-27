@@ -500,7 +500,7 @@ public abstract class AbstractPlayerInteraction
 
     public final MapleQuestStatus getQuestRecord(final int questId)
     {
-        return this.getPlayer().getQuestOrAdd(MapleQuest.getInstance(questId));
+        return this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId));
     }
 
     public final boolean isQuestActive(final int questId)
@@ -991,7 +991,7 @@ public abstract class AbstractPlayerInteraction
 
     public final String getInfoQuest(final int id)
     {
-        return this.getPlayer().getInfoQuest(id);
+        return this.getPlayer().getQuestData(id);
     }
 
     public final boolean getEvanIntroState(final String data)
@@ -1006,7 +1006,7 @@ public abstract class AbstractPlayerInteraction
 
     public final void updateInfoQuest(final int id, final String data)
     {
-        this.getPlayer().updateInfoQuest(id, data);
+        this.getPlayer().updateQuestData(id, data);
     }
 
     public final int getSavedLocation(final String loc)
