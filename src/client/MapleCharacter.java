@@ -576,7 +576,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 status.setData(rs.getString("data"));
                 status.setChanged(false);
 
-                pse.setInt(1, rs.getInt("quest_id"));
+                pse.setInt(1, rs.getInt("id"));
 
                 final ResultSet rsMobs = pse.executeQuery();
 
