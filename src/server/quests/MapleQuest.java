@@ -22,7 +22,6 @@ package server.quests;
 
 import client.MapleCharacter;
 import client.MapleQuestStatus;
-import constants.GameConstants;
 import provider.MapleData;
 import provider.MapleDataProvider;
 import provider.MapleDataProviderFactory;
@@ -38,12 +37,12 @@ public class MapleQuest
     private static Map<Integer, MapleQuest> quests = new LinkedHashMap<>();
 
     private final int id;
-    List<MapleQuestRequirement> startRequirements = new LinkedList<>();
-    List<MapleQuestRequirement> completeRequirements = new LinkedList<>();
-    private List<MapleQuestAction> startActions = new LinkedList<>();
-    private List<MapleQuestAction> completeActions = new LinkedList<>();
-    private Map<String, List<Pair<String, Pair<String, Integer>>>> partyQuestInfo = new LinkedHashMap<>();
-    private Map<Integer, Integer> relevantMobs = new LinkedHashMap<>();
+    final List<MapleQuestRequirement> startRequirements = new LinkedList<>();
+    final List<MapleQuestRequirement> completeRequirements = new LinkedList<>();
+    private final List<MapleQuestAction> startActions = new LinkedList<>();
+    private final List<MapleQuestAction> completeActions = new LinkedList<>();
+    private final Map<String, List<Pair<String, Pair<String, Integer>>>> partyQuestInfo = new LinkedHashMap<>();
+    private final Map<Integer, Integer> relevantMobs = new LinkedHashMap<>();
 
     protected String name = "";
     private boolean autoStart = false;
@@ -220,7 +219,7 @@ public class MapleQuest
     /**
      * 放棄任務
      *
-     * @todo 相依任務會出問題
+     * todo 相依任務會出問題
      */
     public void forfeit(MapleCharacter c)
     {
@@ -270,13 +269,13 @@ public class MapleQuest
         }
     }
 
-    public void forceStart(final MapleCharacter c, final int npc, final String customData)
+    public void forceStart(final MapleCharacter c, final int npc, final String data)
     {
         final MapleQuestStatus oldStatus = c.getQuest(this);
         final MapleQuestStatus newStatus = new MapleQuestStatus(this, (byte) 1, npc);
 
         newStatus.setInfo(oldStatus.getInfo());
-        newStatus.setData(customData);
+        newStatus.setData(data);
         newStatus.setCompletionTime(oldStatus.getCompletionTime());
 
         if (oldStatus.getMobKills() != null) {
@@ -369,9 +368,11 @@ public class MapleQuest
         if (ret == null) {
             ret = new MapleQuest(id);
 
-            if (!loadQuest(ret, id)) {
-                System.err.println("Invalid quest id: " + id);
-                return null;
+            if (id < 27000 || id > 27020) {
+                if (!loadQuest(ret, id)) {
+                    System.err.println("Invalid quest id: " + id);
+                    return null;
+                }
             }
 
             quests.put(id, ret);
@@ -407,7 +408,7 @@ public class MapleQuest
 
     public enum MedalQuest
     {
-        新手冒險家(29005, 29015, 15, new int[]{104000000, 104010001, 100000006, 104020000, 100000000, 100010000, 100040000, 100040100, 101010103, 101020000, 101000000, 102000000, 101030104, 101030406, 102020300, 103000000, 102050000, 103010001, 103030200, 110000000}),
+        Beginner(29005, 29015, 15, new int[]{104000000, 104010001, 100000006, 104020000, 100000000, 100010000, 100040000, 100040100, 101010103, 101020000, 101000000, 102000000, 101030104, 101030406, 102020300, 103000000, 102050000, 103010001, 103030200, 110000000}),
         ElNath(29006, 29012, 50, new int[]{200000000, 200010100, 200010300, 200080000, 200080100, 211000000, 211030000, 211040300, 211041200, 211041800}),
         LudusLake(29007, 29012, 40, new int[]{222000000, 222010400, 222020000, 220000000, 220020300, 220040200, 221020701, 221000000, 221030600, 221040400}),
         Underwater(29008, 29012, 40, new int[]{230000000, 230010400, 230010200, 230010201, 230020000, 230020201, 230030100, 230040000, 230040200, 230040400}),
@@ -419,12 +420,37 @@ public class MapleQuest
         public final int questId, lastQuestId, level;
         public final int[] maps;
 
-        MedalQuest(int questId, int lastQuestId, int level, int[] maps)
+        MedalQuest(final int questId, final int lastQuestId, final int level, final int[] maps)
         {
-            this.questId = questId; //infoquest = questid -2005, customdata = questid -1995
+            this.questId = questId; // infoex = questId -2005, infoNumber = questId -1995
             this.lastQuestId = lastQuestId;
             this.level = level;
-            this.maps = maps; //note # of maps
+            this.maps = maps; // note # of maps
+        }
+
+        @Override
+        public final String toString()
+        {
+            switch (this) {
+                case Beginner:
+                    return "新手探險家";
+                case ElNath:
+                    return "冰原雪域山脈探險家";
+                case LudusLake:
+                    return "路德斯湖探險家";
+                case Underwater:
+                    return "海底探險家";
+                case MuLung:
+                    return "武陵桃園探險家";
+                case NihalDesert:
+                    return "納希沙漠探險家";
+                case MinarForest:
+                    return "米納爾森林探險家";
+                case Sleepywood:
+                    return "奇幻村探險家";
+                default:
+                    return "探險家";
+            }
         }
     }
 }

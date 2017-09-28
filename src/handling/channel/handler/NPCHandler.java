@@ -190,7 +190,7 @@ public class NPCHandler {
             }
             case 5: { // Scripted End Quest
                 final int npc = slea.readInt();
-                NPCScriptManager.getInstance().endQuest(c, npc, quest, false);
+                NPCScriptManager.getInstance().endQuest(c, npc, quest);
                 c.getSession().write(MaplePacketCreator.showSpecialEffect(9)); // Quest completion
                 chr.getMap().broadcastMessage(chr, MaplePacketCreator.showSpecialEffect(chr.getId(), 9), false);
                 break;

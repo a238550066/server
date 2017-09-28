@@ -190,12 +190,8 @@ public class NPCScriptManager extends AbstractScriptManager
         }
     }
 
-    public final void endQuest(final MapleClient c, final int npcId, final int questId, final boolean customEnd)
+    public final void endQuest(final MapleClient c, final int npcId, final int questId)
     {
-        if (!customEnd) {
-            return;
-        }
-
         final MapleQuest quest = MapleQuest.getInstance(questId);
 
         if (quest == null || !quest.canComplete(c.getPlayer(), null)) {
