@@ -84,6 +84,8 @@ public class MapleQuestStatus
     public final void setInfo(final String info)
     {
         this.info = info;
+
+        this.changed();
     }
 
     public final int getForfeited()
@@ -94,6 +96,8 @@ public class MapleQuestStatus
     public final void setForfeited(final int forfeited)
     {
         this.forfeited = forfeited;
+
+        this.changed();
     }
 
     public final int getNpc()
@@ -106,13 +110,16 @@ public class MapleQuestStatus
         this.npc = npc;
     }
 
-    public final String getData() {
+    public final String getData()
+    {
         return this.data;
     }
 
     public final void setData(final String data)
     {
         this.data = data;
+
+        this.changed();
     }
 
     public final long getCompletionTime()
@@ -123,6 +130,8 @@ public class MapleQuestStatus
     public final void setCompletionTime(final long completionTime)
     {
         this.completionTime = completionTime;
+
+        this.changed();
     }
 
     public final boolean isChanged()
@@ -133,6 +142,11 @@ public class MapleQuestStatus
     public final void setChanged(final boolean changed)
     {
         this.changed = changed;
+    }
+
+    private void changed()
+    {
+        this.changed = true;
     }
 
     final boolean mobKilled(final int mobId, final int skillID)

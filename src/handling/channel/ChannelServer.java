@@ -690,6 +690,8 @@ public class ChannelServer implements Serializable
             ++ppl;
         }
 
-        System.out.println("[自動存檔] 已經將頻道 " + this.channel + " 的 " + ppl + " 個玩家保存到數據中.");
+        this.broadcastPacket(MaplePacketCreator.yellowChat("[楓之谷幫助] 自動存檔已完成"));
+
+        System.out.println("[自動存檔] 已經將頻道 " + this.channel + " 的 " + ppl + " 個玩家保存到資料庫中");
     }
  }

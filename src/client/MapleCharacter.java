@@ -574,8 +574,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 status.setInfo(rs.getString("info"));
                 status.setCompletionTime(DateTimeUtil.toTimestamp(rs.getString("updated_at")));
                 status.setData(rs.getString("data"));
-
-                ret.quests.put(quest, status);
+                status.setChanged(false);
 
                 pse.setInt(1, rs.getInt("quest_id"));
 
@@ -586,6 +585,8 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                 }
 
                 rsMobs.close();
+
+                ret.quests.put(quest, status);
             }
 
             rs.close();
@@ -1286,7 +1287,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
 
             final Connection con = DatabaseConnection.getConnection();
 
-            final PreparedStatement psQuery = con.prepareStatement("SELECT `id` FROM `quest_status` WHERE `character_id` = ? AND `quest_id` = ?");
+            final PreparedStatement psQuery = con.prepareStatement("SELECT `id`, `updated_at` FROM `quest_status` WHERE `character_id` = ? AND `quest_id` = ?");
             final PreparedStatement psInsert = con.prepareStatement("INSERT INTO `quest_status` (`character_id`, `quest_id`, `status`, `info`, `data`, `forfeited`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             final PreparedStatement psUpdate = con.prepareStatement("UPDATE `quest_status` SET `status` = ?, `info` = ?, `data` = ?, `forfeited` = ?, `updated_at` = ? WHERE `id` = ?");
             final PreparedStatement psMobQuery = con.prepareStatement("SELECT `id` FROM `quest_mobs` WHERE `quest_status_id` = ? AND `mob_id` = ?");
@@ -1309,7 +1310,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
                     psUpdate.setString(2, status.getInfo());
                     psUpdate.setString(3, status.getData());
                     psUpdate.setInt(4, status.getForfeited());
-                    psUpdate.setString(5, now);
+                    psUpdate.setString(5, status.isChanged() ? now : rs.getString("updated_at"));
                     psUpdate.setInt(6, id);
                     psUpdate.executeUpdate();
                 } else {
