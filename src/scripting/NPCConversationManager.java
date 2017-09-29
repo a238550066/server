@@ -685,20 +685,6 @@ public class NPCConversationManager extends AbstractPlayerInteraction
         quest.forceComplete(this.getPlayer(), this.getNpc());
     }
 
-    public final String getQuestInfo(final int questId)
-    {
-        return this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId)).getInfo();
-    }
-
-    public final void setQuestInfo(final int questId, final String info)
-    {
-        final MapleQuestStatus status = this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId));
-
-        status.setInfo(info);
-
-        this.writePacket(MaplePacketCreator.updateQuest(status));
-    }
-
     public final void setQuestRecord(final MapleCharacter ch, final int questId, final String data)
     {
         ch.getOrAddQuest(MapleQuest.getInstance(questId)).setData(data);

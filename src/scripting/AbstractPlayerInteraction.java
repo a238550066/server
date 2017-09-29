@@ -523,6 +523,21 @@ public abstract class AbstractPlayerInteraction
         this.writePacket(MaplePacketCreator.showQuestMsg(msg));
     }
 
+    public final String getQuestInfo(final int questId)
+    {
+        return this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId)).getInfo();
+    }
+
+    public final void setQuestInfo(final int questId, final String info)
+    {
+        final MapleQuestStatus status = this.getPlayer().getOrAddQuest(MapleQuest.getInstance(questId));
+
+        status.setInfo(info);
+
+        this.writePacket(MaplePacketCreator.updateQuest(status));
+    }
+
+
     public final void forceStartQuest(final int questId, final String data)
     {
         final MapleQuest quest = this.getQuest(questId);
