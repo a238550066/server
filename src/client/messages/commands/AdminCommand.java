@@ -238,9 +238,9 @@ public class AdminCommand
             player.setInvincible(! player.isInvincible());
 
             if (player.isInvincible()) {
-                player.dropMessage(6, "無敵已關閉");
-            } else {
                 player.dropMessage(6, "無敵已開啟");
+            } else {
+                player.dropMessage(6, "無敵已關閉");
             }
 
             return 1;
