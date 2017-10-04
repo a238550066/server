@@ -959,7 +959,7 @@ public abstract class AbstractPlayerInteraction
 
     public final void dojoGetUp()
     {
-        this.writePacket(MaplePacketCreator.updateInfoQuest(1207, "pt=1;min=4;belt=1;tuto=1")); //todo
+        this.writePacket(MaplePacketCreator.updateQuestData(1207, "pt=1;min=4;belt=1;tuto=1")); //todo
         this.writePacket(MaplePacketCreator.Mulung_DojoUp2());
         this.writePacket(MaplePacketCreator.instantMapWarp((byte) 6));
     }

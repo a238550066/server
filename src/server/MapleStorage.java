@@ -166,24 +166,24 @@ public class MapleStorage implements Serializable {
         return -1;
     }
 
-    public void sendStorage(MapleClient c, int npcId) {
-        // sort by inventorytype to avoid confusion
-        Collections.sort(items, new Comparator<IItem>() {
-
-            public int compare(IItem o1, IItem o2) {
-                if (GameConstants.getInventoryType(o1.getItemId()).getType() < GameConstants.getInventoryType(o2.getItemId()).getType()) {
-                    return -1;
-                } else if (GameConstants.getInventoryType(o1.getItemId()) == GameConstants.getInventoryType(o2.getItemId())) {
-                    return 0;
-                } else {
-                    return 1;
-                }
+    public final void sendStorage(final MapleClient c, final int npcId)
+    {
+        // sort by inventory type to avoid confusion
+        this.items.sort((o1, o2) -> {
+            if (GameConstants.getInventoryType(o1.getItemId()).getType() < GameConstants.getInventoryType(o2.getItemId()).getType()) {
+                return -1;
+            } else if (GameConstants.getInventoryType(o1.getItemId()) == GameConstants.getInventoryType(o2.getItemId())) {
+                return 0;
             }
+
+            return 1;
         });
-        for (MapleInventoryType type : MapleInventoryType.values()) {
-            typeItems.put(type, new ArrayList<IItem>(items));
+
+        for (final MapleInventoryType type : MapleInventoryType.values()) {
+            this.typeItems.put(type, new ArrayList<>(this.items));
         }
-        c.getSession().write(MaplePacketCreator.getStorage(npcId, slots, items, meso));
+
+        c.getSession().write(MaplePacketCreator.getStorage(npcId, this.slots, this.items, this.meso));
     }
 
     public void sendStored(MapleClient c, MapleInventoryType type) {

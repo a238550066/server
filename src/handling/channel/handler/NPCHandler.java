@@ -198,11 +198,14 @@ public class NPCHandler {
         }
     }
 
-    public static final void Storage(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr) {
+    public static void Storage(final SeekableLittleEndianAccessor slea, final MapleClient c, final MapleCharacter chr)
+    {
         final byte mode = slea.readByte();
+
         if (chr == null) {
             return;
         }
+
         final MapleStorage storage = chr.getStorage();
 
         switch (mode) {
@@ -225,35 +228,40 @@ public class NPCHandler {
                 }
                 break;
             }
-            case 5: { // Store
+            case 5: { // 儲存物品到倉庫
                 final byte slot = (byte) slea.readShort();
                 final int itemId = slea.readInt();
                 short quantity = slea.readShort();
                 final MapleItemInformationProvider ii = MapleItemInformationProvider.getInstance();
+
                 if (quantity < 1) {
                     //AutobanManager.getInstance().autoban(c, "Trying to store " + quantity + " of " + itemId);
                     return;
                 }
+
                 if (storage.isFull()) {
                     c.getSession().write(MaplePacketCreator.getStorageFull());
                     return;
                 }
 
                 if (chr.getMeso() < 100) {
-                    chr.dropMessage(1, "你沒有足夠的楓幣.");
+                    chr.dropMessage(1, "你沒有足夠的楓幣");
                 } else {
-                    MapleInventoryType type = GameConstants.getInventoryType(itemId);
-                    IItem item = chr.getInventory(type).getItem(slot).copy();
+                    final MapleInventoryType type = GameConstants.getInventoryType(itemId);
+                    final IItem item = chr.getInventory(type).getItem(slot).copy();
 
                     if (GameConstants.isPet(item.getItemId())) {
                         c.getSession().write(MaplePacketCreator.enableActions());
                         return;
                     }
+
                     final byte flag = item.getFlag();
+
                     if (ii.isPickupRestricted(item.getItemId()) && storage.findById(item.getItemId()) != null) {
                         c.getSession().write(MaplePacketCreator.enableActions());
                         return;
                     }
+
                     if (item.getItemId() == itemId && (item.getQuantity() >= quantity || GameConstants.isThrowingStar(itemId) || GameConstants.isBullet(itemId))) {
                         if (ii.isDropRestricted(item.getItemId())) {
                             if (ItemFlag.KARMA_EQ.check(flag)) {
@@ -265,9 +273,11 @@ public class NPCHandler {
                                 return;
                             }
                         }
+
                         if (GameConstants.isThrowingStar(itemId) || GameConstants.isBullet(itemId)) {
                             quantity = item.getQuantity();
                         }
+
                         chr.gainMeso(-100, false, true, false);
                         MapleInventoryManipulator.removeFromSlot(c, type, slot, quantity, false);
                         item.setQuantity(quantity);
@@ -288,22 +298,20 @@ public class NPCHandler {
                 if ((meso > 0 && storageMesos >= meso) || (meso < 0 && playerMesos >= -meso)) {
                     if (meso < 0 && (storageMesos - meso) < 0) { // storing with overflow
                         meso = -(Integer.MAX_VALUE - storageMesos);
-                        if ((-meso) > playerMesos) { // should never happen just a failsafe
-                            return;
-                        }
                     } else if (meso > 0 && (playerMesos + meso) < 0) { // taking out with overflow
                         meso = (Integer.MAX_VALUE - playerMesos);
-                        if ((meso) > storageMesos) { // should never happen just a failsafe
-                            return;
-                        }
                     }
+
                     storage.setMeso(storageMesos - meso);
+
                     chr.gainMeso(meso, false, true, false);
                 } else {
                     AutobanManager.getInstance().addPoints(c, 1000, 0, "Trying to store or take out unavailable amount of mesos (" + meso + "/" + storage.getMeso() + "/" + c.getPlayer().getMeso() + ")");
                     return;
                 }
+
                 storage.sendMeso(c);
+
                 break;
             }
             case 8: {

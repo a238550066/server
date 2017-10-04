@@ -456,10 +456,10 @@ public class MapleClient implements Serializable {
         for (final MapleClient c : World.Client.getClients()) {
             if (c.getAccID() == this.accId && c.isLoggedIn()) {
                 if (c.getSession().isConnected()) {
-                    List<String> names = c.loadCharacterNames(c.getWorld());
+                    final List<String> names = c.loadCharacterNames(c.getWorld());
 
                     for (final String name : names) {
-                        MapleCharacter chr = CashShopServer.getPlayerStorage().getCharacterByName(name);
+                        final MapleCharacter chr = CashShopServer.getPlayerStorage().getCharacterByName(name);
 
                         if (null != chr) {
                             chr.saveToDB(false,false);
@@ -470,7 +470,7 @@ public class MapleClient implements Serializable {
                         }
                     }
 
-                    for (ChannelServer cs : ChannelServer.getAllInstances()) {
+                    for (final ChannelServer cs : ChannelServer.getAllInstances()) {
                         for (final String name : names) {
                             MapleCharacter chr = cs.getPlayerStorage().getCharacterByName(name);
 
@@ -775,12 +775,14 @@ public class MapleClient implements Serializable {
         }
     }
 
-    public final void disconnect(final boolean RemoveInChannelServer, final boolean fromCS) {
-        disconnect(RemoveInChannelServer, fromCS, false);
+    public final void disconnect(final boolean RemoveInChannelServer, final boolean fromCS)
+    {
+        this.disconnect(RemoveInChannelServer, fromCS, false);
     }
 
-    public final void disconnect(final boolean RemoveInChannelServer, final boolean fromCS, final boolean shutdown) {
-        if (player != null && isLoggedIn()) {
+    public final void disconnect(final boolean RemoveInChannelServer, final boolean fromCS, final boolean shutdown)
+    {
+        if (this.player != null && this.isLoggedIn()) {
             MapleMap map = player.getMap();
             final MapleParty party = player.getParty();
             final boolean clone = player.isClone();
@@ -867,10 +869,12 @@ public class MapleClient implements Serializable {
                 }
             } else {
                 final int ch = World.Find.findChannel(idz);
+
                 if (ch > 0) {
                     disconnect(RemoveInChannelServer, false);//u lie
                     return;
                 }
+
                 try {
                     if (party != null) {
                         chrp.setOnline(false);
@@ -899,6 +903,7 @@ public class MapleClient implements Serializable {
                 }
             }
         }
+
         if (!serverTransition && isLoggedIn()) {
             updateLoginState(MapleClient.LOGIN_NOTLOGGEDIN, getSessionIPAddress());
         }

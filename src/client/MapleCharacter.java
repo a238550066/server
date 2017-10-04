@@ -1433,7 +1433,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             if (quest.getKey().getId() == questId) {
                 quest.getValue().setData(data);
 
-                this.client.getSession().write(MaplePacketCreator.updateInfoQuest(questId, data));
+                this.client.getSession().write(MaplePacketCreator.updateQuestData(questId, data));
 
                 break;
             }
@@ -1511,7 +1511,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
         this.client.getSession().write(MaplePacketCreator.updateQuest(quest));
 
         if (quest.getStatus() == 1 && !update) {
-            client.getSession().write(MaplePacketCreator.updateQuestInfo(quest.getQuest().getId(), quest.getNpc(), (byte) 8));
+            client.getSession().write(MaplePacketCreator.updateQuestInfo(quest.getQuest().getId(), quest.getNpc()));
         }
     }
 
@@ -3201,7 +3201,7 @@ public class MapleCharacter extends AbstractAnimatedMapleMapObject implements Se
             if (questStatus.mobKilled(id, skillID)) {
                 client.getSession().write(MaplePacketCreator.updateQuestMobKills(questStatus));
                 if (questStatus.getQuest().canComplete(this, null)) {
-                    client.getSession().write(MaplePacketCreator.getShowQuestCompletion(questStatus.getQuest().getId()));
+                    client.getSession().write(MaplePacketCreator.showQuestCompletion(questStatus.getQuest().getId()));
                 }
             }
         }
