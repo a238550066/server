@@ -33,7 +33,7 @@ public class PlayerCommand {
         @Override
         public int execute(MapleClient c, String[] splitted)
         {
-            String errMsg = "格式錯誤： @clearinv <all/eqp/eq/u/s/e/c> (全部/穿著裝備/裝備/消耗/裝飾/其他/特殊)";
+            String errMsg = "格式錯誤： @clearinv <eqp/eq/u/s/e/c> (穿著裝備/裝備/消耗/裝飾/其他/特殊)";
 
             if (2 != splitted.length) {
                 c.getPlayer().dropMessage(6, errMsg);
