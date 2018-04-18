@@ -146,7 +146,8 @@ public class CommandProcessor {
         return false;
     }
 
-    private static void logGMCommandToDB(MapleCharacter player, String command) {
+    private static void logGMCommandToDB(final MapleCharacter player, final String command)
+    {
         PreparedStatement ps = null;
         try {
             ps = DatabaseConnection.getConnection().prepareStatement("INSERT INTO gmlog (cid, command, mapid) VALUES (?, ?, ?)");
