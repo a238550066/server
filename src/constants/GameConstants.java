@@ -436,7 +436,7 @@ public class GameConstants
                 return true;
         }
 
-        return true;
+        return false; //修正雙手武器判斷
     }
 
     public static boolean isUpgradeScroll(final int id)
